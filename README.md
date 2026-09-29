@@ -1,2 +1,2 @@
-# Yet another ambitous project  
-> It's a simulation! Yay!
+# Yet another ambitious project  
+> It's a simulation! An ambitious one! Yay!
