@@ -1,0 +1,25 @@
+{
+  "name": "yaap",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Simulation/game playground built on world-core and place-core",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "test": "node --import tsx --test test/*.test.ts",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run typecheck && npm test"
+  },
+  "dependencies": {
+    "place-core": "github:Technikhighknee/place-core#main",
+    "world-core": "github:Technikhighknee/world-core#main"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "tsx": "^4.20.0",
+    "typescript": "^5.9.0"
+  }
+}
