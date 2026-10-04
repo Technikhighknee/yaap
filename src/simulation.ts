@@ -11,6 +11,8 @@ import {
   WorldCoreBridge
 } from "place-core";
 
+import { registerPlaceDefinitions } from "./places/definitions/index.js";
+
 export function createSimulation() {
   const world = new World();
   const navigation = new NavigationRegistry();
@@ -24,6 +26,7 @@ export function createSimulation() {
   });
 
   const places = new PlaceRegistry({ bridge });
+  registerPlaceDefinitions(places);
 
   return {
     world,
