@@ -1,0 +1,18 @@
+{
+  "name": "yaap",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Simulation/game playground built on world-core and place-core",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "place-core": "github:Technikhighknee/place-core#b6afb47d2d03890bc51dfdfb63fe56ae4b15618c",
+    "world-core": "github:Technikhighknee/world-core#3257f0bb75ab000649f4e3ecc0660359c6d0c6f3"
+  }
+}
