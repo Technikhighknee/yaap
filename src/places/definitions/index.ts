@@ -1,13 +1,13 @@
 import type { PlaceRegistry } from "place-core";
 
-import { smallTownhouseDefinition } from "./residential/small-townhouse.js";
+import { smallHutDefinition } from "./residential/small-hut.js";
 
 export {
-  smallTownhouseDefinition
-} from "./residential/small-townhouse.js";
+  smallHutDefinition
+} from "./residential/small-hut.js";
 
 export const placeDefinitions = [
-  smallTownhouseDefinition
+  smallHutDefinition
 ] as const;
 
 export function registerPlaceDefinitions(registry: PlaceRegistry): void {
