@@ -9,7 +9,7 @@
   },
   "scripts": {
     "start": "tsx src/main.ts",
-    "test": "tsx --test test/*.test.ts",
+    "test": "node --import tsx --test test/*.test.ts",
     "typecheck": "tsc --noEmit",
     "check": "npm run typecheck && npm test"
   },
