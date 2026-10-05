@@ -1,13 +1,37 @@
 import type { PlaceRegistry } from "place-core";
 
-import { smallHutDefinition } from "./residential/small-hut.js";
+import { prisonDefinition } from "./civic/prison.js";
+import { townHallDefinition } from "./civic/town-hall.js";
+import { alehouseDefinition } from "./hospitality/alehouse.js";
+import { foundryDefinition } from "./production/foundry.js";
+import { residenceDefinition } from "./residential/residence.js";
 
 export {
-  smallHutDefinition
-} from "./residential/small-hut.js";
+  prisonDefinition
+} from "./civic/prison.js";
+
+export {
+  townHallDefinition
+} from "./civic/town-hall.js";
+
+export {
+  alehouseDefinition
+} from "./hospitality/alehouse.js";
+
+export {
+  foundryDefinition
+} from "./production/foundry.js";
+
+export {
+  residenceDefinition
+} from "./residential/residence.js";
 
 export const placeDefinitions = [
-  smallHutDefinition
+  residenceDefinition,
+  townHallDefinition,
+  prisonDefinition,
+  alehouseDefinition,
+  foundryDefinition
 ] as const;
 
 export function registerPlaceDefinitions(registry: PlaceRegistry): void {
