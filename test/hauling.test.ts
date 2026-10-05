@@ -113,7 +113,8 @@ test("hauling start validation does not mutate inventories", () => {
   assert.equal(
     simulation.world
       .getEntity(cart.id)
-      ?.journey,
+      ?.journey ??
+      null,
     null
   );
   assert.equal(
