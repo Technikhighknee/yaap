@@ -12,6 +12,18 @@ export const GATHERING_OUTPUTS = [
     itemId: "iron",
     amount: 5,
     workSeconds: 8
+  },
+  {
+    resourceTypeId: "pinewood",
+    itemId: "pinewood",
+    amount: 5,
+    workSeconds: 8
+  },
+  {
+    resourceTypeId: "oakwood",
+    itemId: "oakwood",
+    amount: 5,
+    workSeconds: 8
   }
 ] as const satisfies
   readonly GatheringOutputDefinition[];
