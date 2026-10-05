@@ -7,6 +7,10 @@ import type {
   InventoryChannel
 } from "../inventory/bindings.js";
 
+import type {
+  Inventory
+} from "../inventory/inventory.js";
+
 export interface TransferEnvironment {
   readonly world: World;
   readonly inventoryBindings:
@@ -142,6 +146,88 @@ export class PlaceTransferRegistry {
     itemId: string,
     amount: number
   ) {
+    this.requireTransferRange(
+      environment,
+      entityId,
+      placeId
+    );
+
+    const source =
+      this.requireInventory(
+        environment,
+        {
+          kind: "entity",
+          id: entityId
+        },
+        entityChannel
+      );
+
+    const target =
+      this.requireInventory(
+        environment,
+        {
+          kind: "place",
+          id: placeId
+        },
+        placeChannel
+      );
+
+    return source.transferTo(
+      target,
+      itemId,
+      amount
+    );
+  }
+
+  transferPlaceToEntity(
+    environment: TransferEnvironment,
+    placeId: string,
+    placeChannel:
+      InventoryChannel,
+    entityId: string,
+    entityChannel:
+      InventoryChannel,
+    itemId: string,
+    amount: number
+  ) {
+    this.requireTransferRange(
+      environment,
+      entityId,
+      placeId
+    );
+
+    const source =
+      this.requireInventory(
+        environment,
+        {
+          kind: "place",
+          id: placeId
+        },
+        placeChannel
+      );
+
+    const target =
+      this.requireInventory(
+        environment,
+        {
+          kind: "entity",
+          id: entityId
+        },
+        entityChannel
+      );
+
+    return source.transferTo(
+      target,
+      itemId,
+      amount
+    );
+  }
+
+  private requireTransferRange(
+    environment: TransferEnvironment,
+    entityId: string,
+    placeId: string
+  ): void {
     if (
       !this.canEntityTransfer(
         environment,
@@ -153,36 +239,34 @@ export class PlaceTransferRegistry {
         `entity is outside transfer range: ${entityId} -> ${placeId}`
       );
     }
+  }
 
-    const source =
+  private requireInventory(
+    environment: TransferEnvironment,
+    owner:
+      | {
+          readonly kind: "entity";
+          readonly id: string;
+        }
+      | {
+          readonly kind: "place";
+          readonly id: string;
+        },
+    channel: InventoryChannel
+  ): Inventory {
+    const inventory =
       environment.inventoryBindings
         .getInventory(
-          {
-            kind: "entity",
-            id: entityId
-          },
-          entityChannel
-        );
-    const target =
-      environment.inventoryBindings
-        .getInventory(
-          {
-            kind: "place",
-            id: placeId
-          },
-          placeChannel
+          owner,
+          channel
         );
 
-    if (!source || !target) {
+    if (!inventory) {
       throw new Error(
-        "missing inventory for transfer"
+        `missing inventory for transfer: ${owner.kind}:${owner.id}:${channel}`
       );
     }
 
-    return source.transferTo(
-      target,
-      itemId,
-      amount
-    );
+    return inventory;
   }
 }
