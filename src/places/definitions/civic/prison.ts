@@ -27,6 +27,7 @@ const blueprint = {
           { id: "front-door", x: 6, y: 0.5 },
           { id: "cell-block-south", x: 6, y: 2.5 },
           { id: "guard-post", x: 6, y: 1.5 },
+          { id: "cell-block-center", x: 6, y: 5 },
           { id: "cell-block-north", x: 6, y: 7.5 },
           { id: "stairs-ground", x: 6, y: 9.25 },
 
@@ -62,8 +63,15 @@ const blueprint = {
             surface: "floor"
           },
           {
-            id: "cell-block-main",
+            id: "cell-block-south-to-center",
             from: "cell-block-south",
+            to: "cell-block-center",
+            width: 2,
+            surface: "floor"
+          },
+          {
+            id: "cell-block-center-to-north",
+            from: "cell-block-center",
             to: "cell-block-north",
             width: 2,
             surface: "floor"
@@ -444,7 +452,7 @@ const blueprint = {
       layerId: "ground",
       spaceId: "cell-block",
       position: { x: 6, y: 5 },
-      nodeId: "cell-block-north",
+      nodeId: "cell-block-center",
       tags: ["cell-block"]
     },
     {
