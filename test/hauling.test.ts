@@ -178,8 +178,12 @@ test("hauling keeps the full cargo when target capacity disappears in transit", 
       targetPlaceId:
         SMALL_TOWN_IDS.foundry,
       targetChannel: "storage",
-      itemId: "iron",
-      amount: 5
+      manifest: [
+        {
+          itemId: "iron",
+          amount: 5
+        }
+      ]
     });
 
   assert.equal(
