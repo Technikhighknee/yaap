@@ -65,30 +65,19 @@ export function createOwnerInventory(
     owner
   );
 
-  const inventory =
-    simulation.inventories.create({
-      id: ownerInventoryId(
-        owner,
-        channel
-      ),
-      slotCount:
-        spec.slotCount,
-      slotCapacity:
-        spec.slotCapacity
-    });
-
-  try {
-    simulation.inventoryBindings.bind(
+  return simulation.inventoryBindings
+    .createBoundInventory(
       owner,
       channel,
-      inventory.id
+      {
+        id: ownerInventoryId(
+          owner,
+          channel
+        ),
+        slotCount:
+          spec.slotCount,
+        slotCapacity:
+          spec.slotCapacity
+      }
     );
-  } catch (error) {
-    simulation.inventories.remove(
-      inventory.id
-    );
-    throw error;
-  }
-
-  return inventory;
 }
