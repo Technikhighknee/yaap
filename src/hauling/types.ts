@@ -7,6 +7,11 @@ export type HaulingPhase =
   | "complete"
   | "failed";
 
+export interface HaulingManifestLine {
+  readonly itemId: string;
+  readonly amount: number;
+}
+
 export interface HaulingJob {
   readonly transportId: string;
   readonly sourcePlaceId: string;
@@ -15,9 +20,8 @@ export interface HaulingJob {
   readonly targetPlaceId: string;
   readonly targetChannel:
     InventoryChannel;
-  readonly itemId: string;
-  readonly amount: number;
+  readonly manifest:
+    readonly Readonly<HaulingManifestLine>[];
   phase: HaulingPhase;
-  deliveredAmount: number;
   failureReason: string | null;
 }

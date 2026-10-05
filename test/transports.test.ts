@@ -577,8 +577,12 @@ test("iron moves from resource to mine to cart to foundry without entering the i
       targetPlaceId:
         SMALL_TOWN_IDS.foundry,
       targetChannel: "storage",
-      itemId: "iron",
-      amount: 5
+      manifest: [
+        {
+          itemId: "iron",
+          amount: 5
+        }
+      ]
     });
 
   assert.equal(
@@ -617,10 +621,6 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     "complete",
     haulingJob.failureReason ??
       undefined
-  );
-  assert.equal(
-    haulingJob.deliveredAmount,
-    5
   );
 
   const cartEntity =

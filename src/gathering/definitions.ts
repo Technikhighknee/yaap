@@ -14,6 +14,24 @@ export const GATHERING_OUTPUTS = [
     workSeconds: 8
   },
   {
+    resourceTypeId: "silver",
+    itemId: "silver",
+    amount: 5,
+    workSeconds: 8
+  },
+  {
+    resourceTypeId: "gold",
+    itemId: "gold",
+    amount: 5,
+    workSeconds: 8
+  },
+  {
+    resourceTypeId: "gemstone",
+    itemId: "gemstone",
+    amount: 5,
+    workSeconds: 8
+  },
+  {
     resourceTypeId: "pinewood",
     itemId: "pinewood",
     amount: 5,
