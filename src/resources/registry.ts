@@ -209,7 +209,7 @@ export class ResourceRegistry {
       definitionId:
         definition.id,
       location:
-        cloneLocation(input),
+        cloneLocation(input.location),
       resourceTypeId
     };
 
