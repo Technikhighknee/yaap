@@ -117,6 +117,39 @@ test("miner walks to iron, works, returns, and deposits into exterior mine stora
     5
   );
 
+  const secondJob =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  let secondTicks = 0;
+  while (
+    secondJob.phase !== "complete" &&
+    secondJob.phase !== "failed" &&
+    secondTicks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    secondTicks += 1;
+  }
+
+  assert.equal(
+    secondJob.phase,
+    "complete",
+    secondJob.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("iron"),
+    10
+  );
+
   const miner =
     simulation.world
       .getEntity("miner-01");
