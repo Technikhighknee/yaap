@@ -5,8 +5,9 @@ import type {
 export type InventoryId = string;
 
 export interface InventorySlot {
-  itemId: ItemId | null;
-  quantity: number;
+  readonly itemId:
+    ItemId | null;
+  readonly quantity: number;
 }
 
 export interface CreateInventoryInput {
