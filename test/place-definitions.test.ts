@@ -7,36 +7,91 @@ import {
   foundryDefinition,
   placeDefinitions,
   prisonDefinition,
-  smallHutDefinition,
+  residenceDefinition,
   townHallDefinition
 } from "../src/places/definitions/index.js";
 
-test("small hut contains only the currently needed residential topology", () => {
-  assert.equal(smallHutDefinition.id, "small-hut");
+test("residence shares one interior while upgrade rooms start disabled", () => {
+  assert.equal(residenceDefinition.id, "residence");
 
   assert.deepEqual(
-    smallHutDefinition.layers.map((layer) => layer.id),
+    residenceDefinition.layers.map((layer) => layer.id),
     ["ground"]
   );
 
   assert.deepEqual(
-    smallHutDefinition.spaces.map((space) => space.id),
-    ["living-room", "bedroom"]
+    residenceDefinition.spaces.map((space) => [
+      space.id,
+      space.enabled
+    ]),
+    [
+      ["living-room", true],
+      ["bedroom", true],
+      ["study", false],
+      ["salon", false],
+      ["backroom", false]
+    ]
   );
 
   assert.deepEqual(
-    smallHutDefinition.portals.map((portal) => portal.id),
-    ["front-door", "bedroom-door"]
+    residenceDefinition.portals.map((portal) => portal.id),
+    [
+      "front-door",
+      "bedroom-door",
+      "study-door",
+      "salon-door",
+      "backroom-door"
+    ]
+  );
+
+  const { places } = createSimulation();
+  const residence = places.createPlace({
+    id: "home",
+    definitionId: "residence"
+  });
+
+  assert.equal(residence.spaceOverrides.size, 0);
+  assert.equal(
+    places.getSpace("home", "study")?.enabled,
+    false
+  );
+  assert.equal(
+    places.resolveAnchor("home", "study-desk"),
+    null
+  );
+  assert.equal(
+    places.resolvePortal("home", "study-door")?.traversable,
+    false
+  );
+
+  places.setSpaceState(
+    "home",
+    "study",
+    { enabled: true }
   );
 
   assert.equal(
-    smallHutDefinition.getSpace("living-room")?.defaultAnchorId,
-    "living-room-center"
+    places.getSpace("home", "study")?.enabled,
+    true
+  );
+  assert.ok(
+    places.resolveAnchor("home", "study-desk")
   );
   assert.equal(
-    smallHutDefinition.getSpace("bedroom")?.defaultAnchorId,
-    "bed"
+    places.resolvePortal("home", "study-door")?.traversable,
+    true
   );
+  assert.deepEqual(
+    residence.spaceOverrides.get("study"),
+    { enabled: true }
+  );
+
+  places.setSpaceState(
+    "home",
+    "study",
+    { enabled: false }
+  );
+  assert.equal(residence.spaceOverrides.size, 0);
 });
 
 test("town hall contains only the entrance hall and council chamber", () => {
