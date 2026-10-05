@@ -7,6 +7,7 @@ import {
 } from "./registry.js";
 
 import type {
+  CreateInventoryInput,
   InventoryId
 } from "./types.js";
 
@@ -119,6 +120,36 @@ export class InventoryBindingRegistry {
     );
 
     return binding;
+  }
+
+  createBoundInventory(
+    owner: InventoryOwner,
+    channel: InventoryChannel,
+    input: CreateInventoryInput
+  ): Inventory {
+    if (
+      this.getBinding(
+        owner,
+        channel
+      )
+    ) {
+      throw new Error(
+        `inventory channel already bound: ${owner.kind}:${owner.id}:${channel}`
+      );
+    }
+
+    const inventory =
+      this.inventories.create(
+        input
+      );
+
+    this.bind(
+      owner,
+      channel,
+      inventory.id
+    );
+
+    return inventory;
   }
 
   getBinding(
