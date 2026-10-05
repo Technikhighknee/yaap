@@ -39,6 +39,12 @@ import {
 } from "./items/registry.js";
 import { registerPlaceDefinitions } from "./places/definitions/index.js";
 import {
+  registerProductionRecipes
+} from "./production/definitions.js";
+import {
+  ProductionSystem
+} from "./production/system.js";
+import {
   registerResourceDefinitions
 } from "./resources/definitions.js";
 import {
@@ -121,6 +127,17 @@ export function createSimulation() {
       transports
     });
 
+  const production =
+    new ProductionSystem({
+      world,
+      places,
+      items,
+      inventoryBindings
+    });
+  registerProductionRecipes(
+    production
+  );
+
   return {
     world,
     navigation,
@@ -133,7 +150,8 @@ export function createSimulation() {
     transfers,
     gathering,
     transports,
-    hauling
+    hauling,
+    production
   };
 }
 
@@ -159,6 +177,10 @@ export function stepSimulation(
   stepPlaceSimulation(
     simulation.places,
     simulation.bridge,
+    deltaSeconds
+  );
+
+  simulation.production.step(
     deltaSeconds
   );
 }
