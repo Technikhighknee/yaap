@@ -201,12 +201,42 @@ test("interior building inventory is transferable from its exterior world endpoi
     "default"
   );
 
+  const courierPosition = {
+    x: 98,
+    y: 119.5
+  };
+
+  assert.ok(
+    Math.hypot(
+      courierPosition.x -
+        endpoint.position.x,
+      courierPosition.y -
+        endpoint.position.y
+    ) > endpoint.range,
+    "test position must be outside the navigation-point radius"
+  );
+
   simulation.world.addEntity({
     id: "courier",
     kind: "person",
     domainId: endpoint.domainId,
-    position: endpoint.position
+    position: courierPosition
   });
+
+  assert.equal(
+    simulation.transfers
+      .canEntityTransfer(
+        {
+          world: simulation.world,
+          inventoryBindings:
+            simulation.inventoryBindings
+        },
+        "courier",
+        SMALL_TOWN_IDS.foundry
+      ),
+    true,
+    "transfer range must be measured from the building footprint, not the navigation point"
+  );
 
   const carried =
     createOwnerInventory(
