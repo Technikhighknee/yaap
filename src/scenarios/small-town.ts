@@ -26,6 +26,12 @@ export {
 };
 
 export const SMALL_TOWN_INVENTORY_SPECS = {
+  woodcutterCamp: {
+    storage: {
+      slotCount: 4,
+      slotCapacity: 20
+    }
+  },
   mine: {
     storage: {
       slotCount: 4,
@@ -80,6 +86,38 @@ export function createSmallTownScenario() {
     position: mineLoading.position,
     navigationNodeId:
       mineLoading.nodeId,
+    range: 6
+  });
+
+  createOwnerInventory(
+    simulation,
+    {
+      kind: "place",
+      id: SMALL_TOWN_IDS.woodcutterCamp
+    },
+    "storage",
+    SMALL_TOWN_INVENTORY_SPECS
+      .woodcutterCamp.storage
+  );
+
+  const woodcutterLoading =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.woodcutterCamp,
+      "loading"
+    );
+
+  if (!woodcutterLoading || !woodcutterLoading.nodeId) {
+    throw new Error(
+      "small-town woodcutter loading anchor is unresolved"
+    );
+  }
+
+  simulation.transfers.register({
+    placeId: SMALL_TOWN_IDS.woodcutterCamp,
+    domainId: woodcutterLoading.domainId,
+    position: woodcutterLoading.position,
+    navigationNodeId:
+      woodcutterLoading.nodeId,
     range: 6
   });
 
