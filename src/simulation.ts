@@ -13,6 +13,12 @@ import {
   stepPlaceSimulation
 } from "place-core";
 
+import {
+  InventoryRegistry
+} from "./inventory/registry.js";
+import {
+  ItemRegistry
+} from "./items/registry.js";
 import { registerPlaceDefinitions } from "./places/definitions/index.js";
 import {
   registerResourceDefinitions
@@ -42,12 +48,19 @@ export function createSimulation() {
     resources
   );
 
+  const items =
+    new ItemRegistry();
+  const inventories =
+    new InventoryRegistry(items);
+
   return {
     world,
     navigation,
     bridge,
     places,
-    resources
+    resources,
+    items,
+    inventories
   };
 }
 
