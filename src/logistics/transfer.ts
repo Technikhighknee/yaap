@@ -13,6 +13,7 @@ export interface PlaceTransferEndpoint {
     readonly x: number;
     readonly y: number;
   };
+  readonly navigationNodeId: string;
   readonly range: number;
 }
 
@@ -38,6 +39,7 @@ export class PlaceTransferRegistry {
     if (
       endpoint.placeId.length === 0 ||
       endpoint.domainId.length === 0 ||
+      endpoint.navigationNodeId.length === 0 ||
       !Number.isFinite(
         endpoint.position.x
       ) ||
@@ -76,6 +78,8 @@ export class PlaceTransferRegistry {
             x: endpoint.position.x,
             y: endpoint.position.y
           }),
+        navigationNodeId:
+          endpoint.navigationNodeId,
         range: endpoint.range
       })
     );
