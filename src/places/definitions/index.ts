@@ -4,7 +4,7 @@ import { prisonDefinition } from "./civic/prison.js";
 import { townHallDefinition } from "./civic/town-hall.js";
 import { alehouseDefinition } from "./hospitality/alehouse.js";
 import { foundryDefinition } from "./production/foundry.js";
-import { smallHutDefinition } from "./residential/small-hut.js";
+import { residenceDefinition } from "./residential/residence.js";
 
 export {
   prisonDefinition
@@ -23,11 +23,11 @@ export {
 } from "./production/foundry.js";
 
 export {
-  smallHutDefinition
-} from "./residential/small-hut.js";
+  residenceDefinition
+} from "./residential/residence.js";
 
 export const placeDefinitions = [
-  smallHutDefinition,
+  residenceDefinition,
   townHallDefinition,
   prisonDefinition,
   alehouseDefinition,
