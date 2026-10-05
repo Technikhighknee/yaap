@@ -25,6 +25,10 @@ const blueprint = {
         nodes: [
           { id: "front-door", x: 5, y: 0.5 },
           { id: "dining-room-center", x: 5, y: 4 },
+          { id: "table-a", x: 2.25, y: 2.5 },
+          { id: "table-b", x: 5, y: 2.5 },
+          { id: "table-c", x: 2.25, y: 5.5 },
+          { id: "serving-counter", x: 7.5, y: 3 },
           { id: "stairs-ground", x: 8.5, y: 6.5 }
         ],
         roads: [
@@ -33,6 +37,34 @@ const blueprint = {
             from: "front-door",
             to: "dining-room-center",
             width: 1.5,
+            surface: "floor"
+          },
+          {
+            id: "dining-room-to-table-a",
+            from: "dining-room-center",
+            to: "table-a",
+            width: 1.2,
+            surface: "floor"
+          },
+          {
+            id: "dining-room-to-table-b",
+            from: "dining-room-center",
+            to: "table-b",
+            width: 1.2,
+            surface: "floor"
+          },
+          {
+            id: "dining-room-to-table-c",
+            from: "dining-room-center",
+            to: "table-c",
+            width: 1.2,
+            surface: "floor"
+          },
+          {
+            id: "dining-room-to-serving-counter",
+            from: "dining-room-center",
+            to: "serving-counter",
+            width: 1.2,
             surface: "floor"
           },
           {
@@ -52,13 +84,29 @@ const blueprint = {
       navigation: {
         nodes: [
           { id: "stairs-cellar", x: 8.5, y: 6.5 },
-          { id: "brew-cellar-center", x: 5, y: 4 }
+          { id: "brew-cellar-center", x: 5, y: 4 },
+          { id: "brew-vat-a", x: 3, y: 3 },
+          { id: "brew-vat-b", x: 7, y: 3 }
         ],
         roads: [
           {
             id: "stairs-to-brew-cellar",
             from: "stairs-cellar",
             to: "brew-cellar-center",
+            width: 1.2,
+            surface: "floor"
+          },
+          {
+            id: "brew-cellar-to-vat-a",
+            from: "brew-cellar-center",
+            to: "brew-vat-a",
+            width: 1.2,
+            surface: "floor"
+          },
+          {
+            id: "brew-cellar-to-vat-b",
+            from: "brew-cellar-center",
+            to: "brew-vat-b",
             width: 1.2,
             surface: "floor"
           }
@@ -157,13 +205,66 @@ const blueprint = {
       tags: ["dining", "social"]
     },
     {
+      id: "table-a",
+      kind: "table",
+      layerId: "ground",
+      spaceId: "dining-room",
+      position: { x: 2.25, y: 2.5 },
+      nodeId: "table-a",
+      tags: ["table", "dining", "seating"]
+    },
+    {
+      id: "table-b",
+      kind: "table",
+      layerId: "ground",
+      spaceId: "dining-room",
+      position: { x: 5, y: 2.5 },
+      nodeId: "table-b",
+      tags: ["table", "dining", "seating"]
+    },
+    {
+      id: "table-c",
+      kind: "table",
+      layerId: "ground",
+      spaceId: "dining-room",
+      position: { x: 2.25, y: 5.5 },
+      nodeId: "table-c",
+      tags: ["table", "dining", "seating"]
+    },
+    {
+      id: "serving-counter",
+      kind: "serving-counter",
+      layerId: "ground",
+      spaceId: "dining-room",
+      position: { x: 7.5, y: 3 },
+      nodeId: "serving-counter",
+      tags: ["service", "serving", "counter"]
+    },
+    {
       id: "brew-cellar-center",
-      kind: "brew-area",
       layerId: "cellar",
       spaceId: "brew-cellar",
       position: { x: 5, y: 4 },
       nodeId: "brew-cellar-center",
       tags: ["brewing"]
+    },
+    {
+      id: "brew-vat-a",
+      kind: "brew-vat",
+      layerId: "cellar",
+      spaceId: "brew-cellar",
+      position: { x: 3, y: 3 },
+      nodeId: "brew-vat-a",
+      tags: ["brewing", "workstation"]
+    },
+    {
+      id: "brew-vat-b",
+      kind: "brew-vat",
+      layerId: "cellar",
+      spaceId: "brew-cellar",
+      position: { x: 7, y: 3 },
+      nodeId: "brew-vat-b",
+      tags: ["brewing", "workstation"]
     }
   ]
 } satisfies PlaceDefinitionInput;
