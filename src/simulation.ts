@@ -81,7 +81,9 @@ export function createSimulation() {
     );
 
   const transfers =
-    new PlaceTransferRegistry();
+    new PlaceTransferRegistry(
+      places
+    );
 
   const gathering =
     new GatheringSystem({
