@@ -505,7 +505,7 @@ test("multiple workers gather the same permanent resource node concurrently", ()
   );
   assert.equal(
     ironNode.resourceTypeId,
-    "iron-ore",
+    "iron",
     "gathering must not deplete or change the resource node"
   );
 
@@ -517,7 +517,7 @@ test("multiple workers gather the same permanent resource node concurrently", ()
   );
   assert.equal(
     ironNode.resourceTypeId,
-    "iron-ore",
+    "iron",
     "the same permanent node must remain gatherable after repeated concurrent use"
   );
 
@@ -563,24 +563,28 @@ test("mine gathers multiple permanent ore resources into shared storage", () => 
       workerId: "miner-01",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.iron,
+      resourceTypeId: "iron",
       itemId: "iron-ore"
     },
     {
       workerId: "silver-miner",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.silver,
+      resourceTypeId: "silver",
       itemId: "silver-ore"
     },
     {
       workerId: "gold-miner",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.gold,
+      resourceTypeId: "gold",
       itemId: "gold-ore"
     },
     {
       workerId: "gem-miner",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.gemstone,
+      resourceTypeId: "gemstone",
       itemId: "gemstone"
     }
   ] as const;
@@ -678,7 +682,7 @@ test("mine gathers multiple permanent ore resources into shared storage", () => 
     assert.ok(node);
     assert.equal(
       node.resourceTypeId,
-      assignment.itemId,
+      assignment.resourceTypeId,
       "gathering must not mutate permanent ore nodes"
     );
   }
