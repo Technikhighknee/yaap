@@ -2,6 +2,10 @@ import type {
   GatheringOutputDefinition
 } from "./types.js";
 
+import {
+  GatheringSystem
+} from "./system.js";
+
 export const GATHERING_OUTPUTS = [
   {
     resourceTypeId: "iron",
@@ -11,3 +15,11 @@ export const GATHERING_OUTPUTS = [
   }
 ] as const satisfies
   readonly GatheringOutputDefinition[];
+
+export function registerGatheringOutputs(
+  system: GatheringSystem
+): void {
+  for (const output of GATHERING_OUTPUTS) {
+    system.registerOutput(output);
+  }
+}
