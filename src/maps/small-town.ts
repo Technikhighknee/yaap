@@ -8,6 +8,7 @@ export const SMALL_TOWN_IDS = {
   tavern: "tavern",
   foundry: "foundry",
   mine: "mine",
+  woodcutterCamp: "woodcutter-camp",
   townHall: "town-hall",
   prison: "prison"
 } as const;
@@ -130,6 +131,11 @@ export const SMALL_TOWN_MAP:
             id: "wood-crossroad",
             x: 144,
             y: 176
+          },
+          {
+            id: "woodcutter-loading",
+            x: 144,
+            y: 166
           },
           {
             id: "pinewood-01",
@@ -277,6 +283,13 @@ export const SMALL_TOWN_MAP:
             surface: "road"
           },
           {
+            id: "crossroad-to-woodcutter-loading",
+            from: "wood-crossroad",
+            to: "woodcutter-loading",
+            width: 3,
+            surface: "road"
+          },
+          {
             id: "wood-to-pinewood",
             from: "wood-crossroad",
             to: "pinewood-01",
@@ -400,6 +413,28 @@ export const SMALL_TOWN_MAP:
         transform: {
           x: 85,
           y: 163,
+          rotation: 0,
+          scale: 1
+        }
+      }
+    },
+    {
+      id: SMALL_TOWN_IDS.woodcutterCamp,
+      definitionId: "woodcutter-camp",
+      layerDomains: {
+        site: "default"
+      },
+      embeddedNodeBindings: {
+        anchors: {
+          loading: "woodcutter-loading"
+        }
+      },
+      placement: {
+        domainId: "default",
+        containment: "footprint",
+        transform: {
+          x: 139,
+          y: 162,
           rotation: 0,
           scale: 1
         }
