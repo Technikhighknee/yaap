@@ -1,4 +1,8 @@
 import {
+  mobilityProfile
+} from "world-core";
+
+import {
   createOwnerInventory
 } from "../inventory/owners.js";
 
@@ -78,6 +82,55 @@ export function createSmallTownScenario() {
       mineLoading.nodeId,
     range: 6
   });
+
+  const foundry =
+    simulation.places.getPlace(
+      SMALL_TOWN_IDS.foundry
+    );
+  const foundryStreet =
+    foundry?.attachments.get(
+      "street"
+    );
+
+  if (
+    !foundryStreet ||
+    !foundryStreet.nodeId
+  ) {
+    throw new Error(
+      "small-town foundry street attachment is unresolved"
+    );
+  }
+
+  simulation.transfers.register({
+    placeId: SMALL_TOWN_IDS.foundry,
+    domainId: foundryStreet.domainId,
+    position: foundryStreet.position,
+    navigationNodeId:
+      foundryStreet.nodeId,
+    range: 6
+  });
+
+  simulation.world.addEntity({
+    id: "miner-01",
+    kind: "person",
+    domainId: mineLoading.domainId,
+    position: mineLoading.position,
+    mobility:
+      mobilityProfile("pedestrian")
+  });
+
+  createOwnerInventory(
+    simulation,
+    {
+      kind: "entity",
+      id: "miner-01"
+    },
+    "carried",
+    {
+      slotCount: 2,
+      slotCapacity: 10
+    }
+  );
 
   createOwnerInventory(
     simulation,
