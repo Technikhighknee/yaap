@@ -13,6 +13,7 @@ export const ITEM_DEFINITIONS = [
   { id: "iron" },
   { id: "silver" },
   { id: "gold" },
+  { id: "charcoal" },
   { id: "gemstone" },
   { id: "pinewood" },
   { id: "oakwood" },
