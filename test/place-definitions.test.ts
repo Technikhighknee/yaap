@@ -55,6 +55,9 @@ test("town hall contains only the entrance hall and council chamber", () => {
     townHallDefinition.portals.map((portal) => portal.id),
     ["front-door", "council-chamber-door"]
   );
+
+  assert.ok(townHallDefinition.getAnchor("clerk-desk"));
+  assert.ok(townHallDefinition.getAnchor("council-table"));
 });
 
 test("prison separates detention cells from the cellar torture chamber", () => {
@@ -114,6 +117,13 @@ test("prison separates detention cells from the cellar torture chamber", () => {
       ]
     );
   }
+
+  assert.ok(prisonDefinition.getAnchor("guard-post"));
+  assert.ok(prisonDefinition.getAnchor("torture-table"));
+  assert.equal(
+    prisonDefinition.getAnchor("cell-block-center")?.nodeId,
+    "cell-block-center"
+  );
 });
 
 test("alehouse has a dining room above a brew cellar", () => {
@@ -142,6 +152,25 @@ test("alehouse has a dining room above a brew cellar", () => {
     alehouseDefinition.getSpace("brew-cellar")?.defaultAnchorId,
     "brew-cellar-center"
   );
+
+  assert.deepEqual(
+    alehouseDefinition.getAnchorsByTag("table")
+      .map((anchor) => anchor.id)
+      .sort(),
+    ["table-a", "table-b", "table-c"]
+  );
+
+  assert.deepEqual(
+    alehouseDefinition.getAnchorsByTag("workstation")
+      .map((anchor) => anchor.id)
+      .sort(),
+    ["brew-vat-a", "brew-vat-b", "torture-table"]
+      .filter((id) => alehouseDefinition.getAnchor(id))
+  );
+
+  assert.ok(alehouseDefinition.getAnchor("serving-counter"));
+  assert.ok(alehouseDefinition.getAnchor("brew-vat-a"));
+  assert.ok(alehouseDefinition.getAnchor("brew-vat-b"));
 });
 
 test("simulation registers every shared place definition once", () => {
