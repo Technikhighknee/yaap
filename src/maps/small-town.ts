@@ -7,6 +7,7 @@ export const SMALL_TOWN_IDS = {
   residence: "house",
   tavern: "tavern",
   foundry: "foundry",
+  mine: "mine",
   townHall: "town-hall",
   prison: "prison"
 } as const;
@@ -99,6 +100,11 @@ export const SMALL_TOWN_MAP:
             id: "mine-crossroad",
             x: 92,
             y: 178
+          },
+          {
+            id: "mine-loading",
+            x: 92,
+            y: 168
           },
           {
             id: "iron-01",
@@ -225,6 +231,13 @@ export const SMALL_TOWN_MAP:
             id: "outskirts-to-mine-crossroad",
             from: "outskirts-crossroad",
             to: "mine-crossroad",
+            width: 3,
+            surface: "road"
+          },
+          {
+            id: "crossroad-to-mine-loading",
+            from: "mine-crossroad",
+            to: "mine-loading",
             width: 3,
             surface: "road"
           },
@@ -365,6 +378,28 @@ export const SMALL_TOWN_MAP:
         transform: {
           x: 131.25,
           y: 103.5,
+          rotation: 0,
+          scale: 1
+        }
+      }
+    },
+    {
+      id: SMALL_TOWN_IDS.mine,
+      definitionId: "mine",
+      layerDomains: {
+        site: "default"
+      },
+      embeddedNodeBindings: {
+        anchors: {
+          loading: "mine-loading"
+        }
+      },
+      placement: {
+        domainId: "default",
+        containment: "footprint",
+        transform: {
+          x: 85,
+          y: 163,
           rotation: 0,
           scale: 1
         }
