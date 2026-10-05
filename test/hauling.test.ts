@@ -103,7 +103,7 @@ test("hauling start validation does not mutate inventories", () => {
           }
         ]
       }),
-    /target lacks requested capacity/
+    /target lacks requested manifest capacity/
   );
 
   assert.equal(
