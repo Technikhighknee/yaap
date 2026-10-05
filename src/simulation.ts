@@ -20,6 +20,9 @@ import {
   GatheringSystem
 } from "./gathering/system.js";
 import {
+  HaulingSystem
+} from "./hauling/system.js";
+import {
   InventoryBindingRegistry
 } from "./inventory/bindings.js";
 import {
@@ -110,6 +113,14 @@ export function createSimulation() {
     transports
   );
 
+  const hauling =
+    new HaulingSystem({
+      world,
+      inventoryBindings,
+      transfers,
+      transports
+    });
+
   return {
     world,
     navigation,
@@ -121,7 +132,8 @@ export function createSimulation() {
     inventoryBindings,
     transfers,
     gathering,
-    transports
+    transports,
+    hauling
   };
 }
 
@@ -139,6 +151,7 @@ export function stepSimulation(
   );
 
   simulation.transports.step();
+  simulation.hauling.step();
   simulation.gathering.step(
     deltaSeconds
   );
