@@ -122,10 +122,15 @@ export class GatheringSystem {
     resourceNodeId: string;
     depositPlaceId: string;
   }): GatheringJob {
-    if (
-      this.jobs.has(
+    const existingJob =
+      this.jobs.get(
         input.workerEntityId
-      )
+      );
+
+    if (
+      existingJob &&
+      existingJob.phase !== "complete" &&
+      existingJob.phase !== "failed"
     ) {
       throw new Error(
         `worker already has gathering job: ${input.workerEntityId}`
@@ -307,6 +312,28 @@ export class GatheringSystem {
         "travelling-to-resource"
       ) {
         if (!worker.journey) {
+          const node =
+            this.environment.resources
+              .getNode(
+                job.resourceNodeId
+              );
+
+          if (
+            !node ||
+            worker.domainId !==
+              node.location.domainId ||
+            worker.position.x !==
+              node.location.position.x ||
+            worker.position.y !==
+              node.location.position.y
+          ) {
+            this.fail(
+              job,
+              "worker did not reach resource"
+            );
+            continue;
+          }
+
           job.phase = "working";
         }
         continue;
@@ -399,16 +426,33 @@ export class GatheringSystem {
         job.phase === "returning" &&
         !worker.journey
       ) {
+        const transferEnvironment = {
+          world:
+            this.environment.world,
+          inventoryBindings:
+            this.environment
+              .inventoryBindings
+        };
+
+        if (
+          !this.environment.transfers
+            .canEntityTransfer(
+              transferEnvironment,
+              job.workerEntityId,
+              job.depositPlaceId
+            )
+        ) {
+          this.fail(
+            job,
+            "worker did not reach deposit"
+          );
+          continue;
+        }
+
         const moved =
           this.environment.transfers
             .transferEntityToPlace(
-              {
-                world:
-                  this.environment.world,
-                inventoryBindings:
-                  this.environment
-                    .inventoryBindings
-              },
+              transferEnvironment,
               job.workerEntityId,
               "carried",
               job.depositPlaceId,
