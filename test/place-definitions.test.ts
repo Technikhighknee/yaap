@@ -3,7 +3,7 @@ import test from "node:test";
 
 import { createSimulation } from "../src/simulation.js";
 import {
-  alehouseDefinition,
+  tavernDefinition,
   foundryDefinition,
   placeDefinitions,
   prisonDefinition,
@@ -182,50 +182,137 @@ test("prison separates detention cells from the cellar torture chamber", () => {
   );
 });
 
-test("alehouse has a dining room above a brew cellar", () => {
-  assert.equal(alehouseDefinition.id, "alehouse");
+test("tavern shares one interior while hospitality rooms start disabled", () => {
+  assert.equal(tavernDefinition.id, "tavern");
 
   assert.deepEqual(
-    alehouseDefinition.layers.map((layer) => layer.id),
-    ["ground", "cellar"]
-  );
-
-  assert.deepEqual(
-    alehouseDefinition.spaces.map((space) => space.id),
-    ["dining-room", "brew-cellar"]
+    tavernDefinition.layers.map((layer) => layer.id),
+    ["ground", "cellar", "upper"]
   );
 
   assert.deepEqual(
-    alehouseDefinition.portals.map((portal) => portal.id),
-    ["front-door", "stairs-to-cellar"]
-  );
-
-  assert.equal(
-    alehouseDefinition.getSpace("dining-room")?.defaultAnchorId,
-    "dining-room-center"
-  );
-  assert.equal(
-    alehouseDefinition.getSpace("brew-cellar")?.defaultAnchorId,
-    "brew-cellar-center"
+    tavernDefinition.spaces.map((space) => [
+      space.id,
+      space.enabled
+    ]),
+    [
+      ["taproom", true],
+      ["bath-room", false],
+      ["brew-cellar", true],
+      ["guest-room", false]
+    ]
   );
 
   assert.deepEqual(
-    alehouseDefinition.getAnchorsByTag("table")
+    tavernDefinition.portals.map((portal) => portal.id),
+    [
+      "front-door",
+      "stairs-to-cellar",
+      "bath-room-door",
+      "stairs-to-guest-room"
+    ]
+  );
+
+  assert.deepEqual(
+    tavernDefinition.getAnchorsByTag("table")
       .map((anchor) => anchor.id)
       .sort(),
     ["table-a", "table-b", "table-c"]
   );
 
   assert.deepEqual(
-    alehouseDefinition.getAnchorsByTag("workstation")
+    tavernDefinition.getAnchorsByTag("workstation")
       .map((anchor) => anchor.id)
       .sort(),
     ["brew-vat-a", "brew-vat-b"]
   );
 
-  assert.ok(alehouseDefinition.getAnchor("serving-counter"));
-  assert.ok(alehouseDefinition.getAnchor("brew-vat-a"));
-  assert.ok(alehouseDefinition.getAnchor("brew-vat-b"));
+  assert.ok(tavernDefinition.getAnchor("serving-counter"));
+  assert.ok(tavernDefinition.getAnchor("dance-floor"));
+  assert.ok(tavernDefinition.getAnchor("bath-tub"));
+  assert.ok(tavernDefinition.getAnchor("guest-bed"));
+
+  const { places } = createSimulation();
+  const tavern = places.createPlace({
+    id: "the-red-ox",
+    definitionId: "tavern"
+  });
+
+  assert.equal(tavern.spaceOverrides.size, 0);
+  assert.equal(
+    places.resolveAnchor("the-red-ox", "bath-tub"),
+    null
+  );
+  assert.equal(
+    places.resolveAnchor("the-red-ox", "guest-bed"),
+    null
+  );
+  assert.equal(
+    places.resolvePortal(
+      "the-red-ox",
+      "bath-room-door"
+    )?.traversable,
+    false
+  );
+  assert.equal(
+    places.resolvePortal(
+      "the-red-ox",
+      "stairs-to-guest-room"
+    )?.traversable,
+    false
+  );
+
+  places.setSpaceState(
+    "the-red-ox",
+    "bath-room",
+    { enabled: true }
+  );
+  places.setSpaceState(
+    "the-red-ox",
+    "guest-room",
+    { enabled: true }
+  );
+
+  assert.ok(
+    places.resolveAnchor("the-red-ox", "bath-tub")
+  );
+  assert.ok(
+    places.resolveAnchor("the-red-ox", "guest-bed")
+  );
+  assert.equal(
+    places.resolvePortal(
+      "the-red-ox",
+      "bath-room-door"
+    )?.traversable,
+    true
+  );
+  assert.equal(
+    places.resolvePortal(
+      "the-red-ox",
+      "stairs-to-guest-room"
+    )?.traversable,
+    true
+  );
+  assert.deepEqual(
+    tavern.spaceOverrides.get("bath-room"),
+    { enabled: true }
+  );
+  assert.deepEqual(
+    tavern.spaceOverrides.get("guest-room"),
+    { enabled: true }
+  );
+
+  places.setSpaceState(
+    "the-red-ox",
+    "bath-room",
+    { enabled: false }
+  );
+  places.setSpaceState(
+    "the-red-ox",
+    "guest-room",
+    { enabled: false }
+  );
+  assert.equal(tavern.spaceOverrides.size, 0);
 });
 
 test("foundry is one workshop with concrete shared functional anchors", () => {
