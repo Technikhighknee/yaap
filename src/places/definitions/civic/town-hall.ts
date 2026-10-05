@@ -25,9 +25,11 @@ const blueprint = {
         nodes: [
           { id: "front-door", x: 5, y: 0.5 },
           { id: "entrance-hall-center", x: 5, y: 2 },
+          { id: "clerk-desk", x: 2.5, y: 2 },
           { id: "council-door-hall", x: 5, y: 3.25 },
           { id: "council-door-chamber", x: 5, y: 3.75 },
-          { id: "council-chamber-center", x: 5, y: 6 }
+          { id: "council-chamber-center", x: 5, y: 6 },
+          { id: "council-table", x: 5, y: 6.75 }
         ],
         roads: [
           {
@@ -35,6 +37,13 @@ const blueprint = {
             from: "front-door",
             to: "entrance-hall-center",
             width: 1.5,
+            surface: "floor"
+          },
+          {
+            id: "entrance-hall-to-clerk-desk",
+            from: "entrance-hall-center",
+            to: "clerk-desk",
+            width: 1.2,
             surface: "floor"
           },
           {
@@ -56,6 +65,13 @@ const blueprint = {
             from: "council-door-chamber",
             to: "council-chamber-center",
             width: 1.5,
+            surface: "floor"
+          },
+          {
+            id: "council-chamber-to-table",
+            from: "council-chamber-center",
+            to: "council-table",
+            width: 1.2,
             surface: "floor"
           }
         ]
@@ -158,12 +174,30 @@ const blueprint = {
       tags: ["public", "administration"]
     },
     {
+      id: "clerk-desk",
+      kind: "clerk-desk",
+      layerId: "ground",
+      spaceId: "entrance-hall",
+      position: { x: 2.5, y: 2 },
+      nodeId: "clerk-desk",
+      tags: ["administration", "clerk", "service"]
+    },
+    {
       id: "council-chamber-center",
       layerId: "ground",
       spaceId: "council-chamber",
       position: { x: 5, y: 6 },
       nodeId: "council-chamber-center",
       tags: ["council", "assembly", "court"]
+    },
+    {
+      id: "council-table",
+      kind: "council-table",
+      layerId: "ground",
+      spaceId: "council-chamber",
+      position: { x: 5, y: 6.75 },
+      nodeId: "council-table",
+      tags: ["council", "assembly", "meeting"]
     }
   ]
 } satisfies PlaceDefinitionInput;
