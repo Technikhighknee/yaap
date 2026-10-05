@@ -281,7 +281,28 @@ export class PlaceTransferRegistry {
 
     if (
       !entity ||
-      !endpoint ||
+      !endpoint
+    ) {
+      return false;
+    }
+
+    if (
+      entity.kind !== "transport"
+    ) {
+      const location =
+        this.places.locateEntity(
+          entity
+        );
+
+      if (
+        location.semanticPlaces
+          .includes(placeId)
+      ) {
+        return true;
+      }
+    }
+
+    if (
       entity.domainId !==
         endpoint.domainId
     ) {
