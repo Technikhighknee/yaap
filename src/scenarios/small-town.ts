@@ -22,6 +22,12 @@ export {
 };
 
 export const SMALL_TOWN_INVENTORY_SPECS = {
+  mine: {
+    storage: {
+      slotCount: 4,
+      slotCapacity: 20
+    }
+  },
   foundry: {
     storage: {
       slotCount: 4,
@@ -40,6 +46,38 @@ export function createSmallTownScenario() {
       createSimulation(),
       SMALL_TOWN_MAP
     );
+
+  createOwnerInventory(
+    simulation,
+    {
+      kind: "place",
+      id: SMALL_TOWN_IDS.mine
+    },
+    "storage",
+    SMALL_TOWN_INVENTORY_SPECS
+      .mine.storage
+  );
+
+  const mineLoading =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.mine,
+      "loading"
+    );
+
+  if (!mineLoading || !mineLoading.nodeId) {
+    throw new Error(
+      "small-town mine loading anchor is unresolved"
+    );
+  }
+
+  simulation.transfers.register({
+    placeId: SMALL_TOWN_IDS.mine,
+    domainId: mineLoading.domainId,
+    position: mineLoading.position,
+    navigationNodeId:
+      mineLoading.nodeId,
+    range: 6
+  });
 
   createOwnerInventory(
     simulation,
