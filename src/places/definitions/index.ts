@@ -1,7 +1,12 @@
 import type { PlaceRegistry } from "place-core";
 
+import { prisonDefinition } from "./civic/prison.js";
 import { townHallDefinition } from "./civic/town-hall.js";
 import { smallHutDefinition } from "./residential/small-hut.js";
+
+export {
+  prisonDefinition
+} from "./civic/prison.js";
 
 export {
   townHallDefinition
@@ -13,7 +18,8 @@ export {
 
 export const placeDefinitions = [
   smallHutDefinition,
-  townHallDefinition
+  townHallDefinition,
+  prisonDefinition
 ] as const;
 
 export function registerPlaceDefinitions(registry: PlaceRegistry): void {
