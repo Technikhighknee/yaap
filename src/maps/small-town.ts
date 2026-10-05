@@ -78,6 +78,11 @@ export const SMALL_TOWN_MAP:
             y: 116
           },
           {
+            id: "foundry-loading",
+            x: 88,
+            y: 112
+          },
+          {
             id: "town-hall-street",
             x: 136,
             y: 116
@@ -202,6 +207,13 @@ export const SMALL_TOWN_MAP:
             id: "market-to-foundry",
             from: "market-center",
             to: "foundry-street",
+            width: 4,
+            surface: "street"
+          },
+          {
+            id: "market-to-foundry-loading",
+            from: "market-center",
+            to: "foundry-loading",
             width: 4,
             surface: "street"
           },
