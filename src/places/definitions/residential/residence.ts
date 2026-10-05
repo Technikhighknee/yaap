@@ -19,6 +19,7 @@ const blueprint = {
 
   layers: [
     {
+      spatialMode: "owned",
       id: "ground",
       kind: "floor",
       navigation: {
