@@ -81,13 +81,16 @@ test("character inside a place interior can transfer with that place inventory",
     "transfer must use the entity's live semantic location, not require a pre-populated occupancy cache"
   );
 
+  const smith =
+    simulation.world.getEntity(
+      "inside-smith"
+    );
+  assert.ok(smith);
+
   const liveLocation =
     simulation.places
       .locateEntity(
-        simulation.world
-          .getEntity(
-            "inside-smith"
-          )
+        smith
       );
 
   assert.equal(
@@ -277,11 +280,15 @@ test("transport inside an interior does not receive character interior transfer 
 
   cargo.add("iron", 1);
 
+  const cartEntity =
+    simulation.world
+      .getEntity(cart.id);
+  assert.ok(cartEntity);
+
   assert.equal(
     simulation.places
       .locateEntity(
-        simulation.world
-          .getEntity(cart.id)
+        cartEntity
       )
       .semanticPlaces
       .includes(
