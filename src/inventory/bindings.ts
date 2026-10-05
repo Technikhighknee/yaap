@@ -65,6 +65,12 @@ export class InventoryBindingRegistry {
       InventoryBinding
     >();
 
+  private readonly inventoryOwners =
+    new Map<
+      InventoryId,
+      string
+    >();
+
   constructor(
     readonly inventories:
       InventoryRegistry
@@ -88,6 +94,16 @@ export class InventoryBindingRegistry {
           `unknown inventory: ${inventoryId}`
         );
       })();
+
+    if (
+      this.inventoryOwners.has(
+        inventoryId
+      )
+    ) {
+      throw new Error(
+        `inventory already bound: ${inventoryId}`
+      );
+    }
 
     const key =
       bindingKey(
@@ -118,6 +134,10 @@ export class InventoryBindingRegistry {
       key,
       binding
     );
+    this.inventoryOwners.set(
+      inventoryId,
+      key
+    );
 
     return binding;
   }
@@ -127,6 +147,11 @@ export class InventoryBindingRegistry {
     channel: InventoryChannel,
     input: CreateInventoryInput
   ): Inventory {
+    assertNonEmptyString(
+      owner.id,
+      "inventory owner id"
+    );
+
     if (
       this.getBinding(
         owner,
@@ -205,12 +230,24 @@ export class InventoryBindingRegistry {
     owner: InventoryOwner,
     channel: InventoryChannel
   ): boolean {
-    return this.bindings.delete(
+    const key =
       bindingKey(
         owner,
         channel
-      )
+      );
+    const binding =
+      this.bindings.get(key);
+
+    if (!binding) {
+      return false;
+    }
+
+    this.bindings.delete(key);
+    this.inventoryOwners.delete(
+      binding.inventoryId
     );
+
+    return true;
   }
 
   assertInternalConsistency(): {
@@ -234,6 +271,31 @@ export class InventoryBindingRegistry {
           `inventory binding references missing inventory: ${binding.inventoryId}`
         );
       }
+
+      const key =
+        bindingKey(
+          binding.owner,
+          binding.channel
+        );
+
+      if (
+        this.inventoryOwners.get(
+          binding.inventoryId
+        ) !== key
+      ) {
+        throw new Error(
+          `inventory binding reverse index mismatch: ${binding.inventoryId}`
+        );
+      }
+    }
+
+    if (
+      this.inventoryOwners.size !==
+      this.bindings.size
+    ) {
+      throw new Error(
+        "inventory binding index size mismatch"
+      );
     }
 
     return {

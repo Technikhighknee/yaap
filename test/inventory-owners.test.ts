@@ -247,6 +247,61 @@ test("owner inventory creation validates owners and channel uniqueness before al
     /unknown inventory/
   );
 
+  const beforeInvalidOwner =
+    simulation.inventories
+      .inventories.size;
+
+  assert.throws(
+    () =>
+      simulation.inventoryBindings
+        .createBoundInventory(
+          {
+            kind: "entity",
+            id: ""
+          },
+          "carried",
+          {
+            id: "must-not-exist",
+            slotCount: 1,
+            slotCapacity: 1
+          }
+        ),
+    /owner id must not be empty/
+  );
+
+  assert.equal(
+    simulation.inventories
+      .inventories.size,
+    beforeInvalidOwner
+  );
+
+  const standalone =
+    simulation.inventories.create({
+      id: "standalone",
+      slotCount: 1,
+      slotCapacity: 1
+    });
+
+  simulation.inventoryBindings.bind(
+    owner,
+    "carried",
+    standalone.id
+  );
+
+  assert.throws(
+    () =>
+      simulation.inventoryBindings
+        .bind(
+          {
+            kind: "place",
+            id: SMALL_TOWN_IDS.tavern
+          },
+          "storage",
+          standalone.id
+        ),
+    /inventory already bound/
+  );
+
   simulation.inventoryBindings
     .assertInternalConsistency();
 });
