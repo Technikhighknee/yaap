@@ -1,3 +1,15 @@
+import {
+  inverseTransformPoint,
+  pointInGeometry,
+  squaredDistancePointToSegment
+} from "place-core";
+
+import type {
+  Geometry,
+  PlaceRegistry,
+  Transform2D
+} from "place-core";
+
 import type {
   World
 } from "world-core";
@@ -28,21 +40,123 @@ export interface PlaceTransferEndpoint {
   readonly range: number;
 }
 
-function distanceSquared(
-  a: { x: number; y: number },
-  b: { x: number; y: number }
+type ResolvedTransform =
+  Required<
+    Pick<
+      Transform2D,
+      "x" | "y" | "rotation" | "scale"
+    >
+  >;
+
+interface RegisteredPlaceTransferEndpoint
+  extends PlaceTransferEndpoint {
+  readonly footprint: Geometry;
+  readonly transform:
+    ResolvedTransform;
+}
+
+function distanceToGeometry(
+  point: {
+    readonly x: number;
+    readonly y: number;
+  },
+  geometry: Geometry
 ): number {
-  const dx = a.x - b.x;
-  const dy = a.y - b.y;
-  return dx * dx + dy * dy;
+  if (
+    pointInGeometry(
+      point,
+      geometry
+    )
+  ) {
+    return 0;
+  }
+
+  if (
+    geometry.type === "aabb"
+  ) {
+    const dx =
+      Math.max(
+        geometry.minX - point.x,
+        0,
+        point.x - geometry.maxX
+      );
+    const dy =
+      Math.max(
+        geometry.minY - point.y,
+        0,
+        point.y - geometry.maxY
+      );
+
+    return Math.hypot(
+      dx,
+      dy
+    );
+  }
+
+  if (
+    geometry.type === "circle"
+  ) {
+    return Math.max(
+      0,
+      Math.hypot(
+        point.x -
+          geometry.center.x,
+        point.y -
+          geometry.center.y
+      ) -
+        geometry.radius
+    );
+  }
+
+  let minimumSquared =
+    Infinity;
+
+  for (
+    let index = 0;
+    index < geometry.points.length;
+    index += 1
+  ) {
+    const a =
+      geometry.points[index];
+    const b =
+      geometry.points[
+        (index + 1) %
+          geometry.points.length
+      ];
+
+    if (!a || !b) {
+      throw new Error(
+        "polygon transfer footprint is missing an edge endpoint"
+      );
+    }
+
+    minimumSquared =
+      Math.min(
+        minimumSquared,
+        squaredDistancePointToSegment(
+          point,
+          a,
+          b
+        )
+      );
+  }
+
+  return Math.sqrt(
+    minimumSquared
+  );
 }
 
 export class PlaceTransferRegistry {
   private readonly endpoints =
     new Map<
       string,
-      PlaceTransferEndpoint
+      RegisteredPlaceTransferEndpoint
     >();
+
+  constructor(
+    private readonly places:
+      PlaceRegistry
+  ) {}
 
   register(
     endpoint: PlaceTransferEndpoint
@@ -77,6 +191,51 @@ export class PlaceTransferRegistry {
       );
     }
 
+    const place =
+      this.places.getPlace(
+        endpoint.placeId
+      );
+
+    if (!place) {
+      throw new Error(
+        `unknown transfer place: ${endpoint.placeId}`
+      );
+    }
+
+    const definition =
+      this.places.getDefinition(
+        place.definitionId
+      );
+
+    if (
+      !definition?.footprint
+    ) {
+      throw new Error(
+        `transfer place has no footprint: ${endpoint.placeId}`
+      );
+    }
+
+    const placement =
+      this.places
+        .getResolvedPlacement(
+          endpoint.placeId
+        );
+
+    if (!placement) {
+      throw new Error(
+        `transfer place has no resolved placement: ${endpoint.placeId}`
+      );
+    }
+
+    if (
+      placement.domainId !==
+      endpoint.domainId
+    ) {
+      throw new Error(
+        `transfer navigation domain does not match place placement: ${endpoint.placeId}`
+      );
+    }
+
     this.endpoints.set(
       endpoint.placeId,
       Object.freeze({
@@ -91,7 +250,11 @@ export class PlaceTransferRegistry {
           }),
         navigationNodeId:
           endpoint.navigationNodeId,
-        range: endpoint.range
+        range: endpoint.range,
+        footprint:
+          definition.footprint,
+        transform:
+          placement.transform
       })
     );
   }
@@ -125,13 +288,25 @@ export class PlaceTransferRegistry {
       return false;
     }
 
-    return (
-      distanceSquared(
+    const localPosition =
+      inverseTransformPoint(
         entity.position,
-        endpoint.position
-      ) <=
-      endpoint.range *
-        endpoint.range
+        endpoint.transform
+      );
+
+    const localDistance =
+      distanceToGeometry(
+        localPosition,
+        endpoint.footprint
+      );
+
+    const worldDistance =
+      localDistance *
+      endpoint.transform.scale;
+
+    return (
+      worldDistance <=
+      endpoint.range
     );
   }
 
