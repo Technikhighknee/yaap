@@ -4,6 +4,7 @@ import test from "node:test";
 import { createSimulation } from "../src/simulation.js";
 import {
   alehouseDefinition,
+  foundryDefinition,
   placeDefinitions,
   prisonDefinition,
   smallHutDefinition,
@@ -170,6 +171,37 @@ test("alehouse has a dining room above a brew cellar", () => {
   assert.ok(alehouseDefinition.getAnchor("serving-counter"));
   assert.ok(alehouseDefinition.getAnchor("brew-vat-a"));
   assert.ok(alehouseDefinition.getAnchor("brew-vat-b"));
+});
+
+test("foundry is one workshop with concrete shared functional anchors", () => {
+  assert.equal(foundryDefinition.id, "foundry");
+
+  assert.deepEqual(
+    foundryDefinition.layers.map((layer) => layer.id),
+    ["ground"]
+  );
+
+  assert.deepEqual(
+    foundryDefinition.spaces.map((space) => space.id),
+    ["workshop"]
+  );
+
+  assert.deepEqual(
+    foundryDefinition.portals.map((portal) => portal.id),
+    ["front-door"]
+  );
+
+  assert.deepEqual(
+    foundryDefinition.getAnchorsByTag("workstation")
+      .map((anchor) => anchor.id)
+      .sort(),
+    ["anvil", "forge", "quench-tub", "workbench"]
+  );
+
+  assert.equal(
+    foundryDefinition.getSpace("workshop")?.defaultAnchorId,
+    "workshop-center"
+  );
 });
 
 test("simulation registers every shared place definition once", () => {
