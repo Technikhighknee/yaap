@@ -176,6 +176,107 @@ test("character inside a place interior can transfer with that place inventory",
   );
 });
 
+test("interior character transfer does not require an exterior endpoint", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const residenceDomain =
+    simulation.places
+      .getLayerDomain(
+        SMALL_TOWN_IDS.residence,
+        "ground"
+      );
+
+  assert.ok(residenceDomain);
+  assert.equal(
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.residence
+    ),
+    null
+  );
+
+  const residenceStorage =
+    createOwnerInventory(
+      simulation,
+      {
+        kind: "place",
+        id: SMALL_TOWN_IDS.residence
+      },
+      "storage",
+      {
+        slotCount: 1,
+        slotCapacity: 10
+      }
+    );
+
+  simulation.world.addEntity({
+    id: "resident-with-goods",
+    kind: "person",
+    domainId: residenceDomain,
+    position: {
+      x: 3.5,
+      y: 3
+    }
+  });
+
+  const carried =
+    createOwnerInventory(
+      simulation,
+      {
+        kind: "entity",
+        id: "resident-with-goods"
+      },
+      "carried",
+      {
+        slotCount: 1,
+        slotCapacity: 10
+      }
+    );
+
+  carried.add("iron", 2);
+
+  assert.equal(
+    simulation.transfers
+      .canEntityTransfer(
+        transferEnvironment(
+          simulation
+        ),
+        "resident-with-goods",
+        SMALL_TOWN_IDS.residence
+      ),
+    true
+  );
+
+  const moved =
+    simulation.transfers
+      .transferEntityToPlace(
+        transferEnvironment(
+          simulation
+        ),
+        "resident-with-goods",
+        "carried",
+        SMALL_TOWN_IDS.residence,
+        "storage",
+        "iron",
+        2
+      );
+
+  assert.equal(
+    moved.moved,
+    2
+  );
+  assert.equal(
+    carried.quantityOf("iron"),
+    0
+  );
+  assert.equal(
+    residenceStorage.quantityOf(
+      "iron"
+    ),
+    2
+  );
+});
+
 test("character inside another interior cannot transfer with the foundry", () => {
   const simulation =
     createSmallTownScenario();
