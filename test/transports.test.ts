@@ -308,3 +308,60 @@ test("a transport without an operator cannot start moving", () => {
     /has no operator/
   );
 });
+
+
+test("transport creation rejects prebound cargo before mutating the world", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const navigation =
+    simulation.navigation
+      .navigationForDomain(
+        "default"
+      );
+  assert.ok(navigation);
+
+  const node =
+    navigation.nodes.get(
+      "foundry-street"
+    );
+  assert.ok(node);
+
+  const standalone =
+    simulation.inventories.create({
+      id: "prebound-cargo",
+      slotCount: 1,
+      slotCapacity: 1
+    });
+
+  simulation.inventoryBindings.bind(
+    {
+      kind: "entity",
+      id: "future-cart"
+    },
+    "cargo",
+    standalone.id
+  );
+
+  assert.throws(
+    () =>
+      simulation.transports.create({
+        id: "future-cart",
+        definitionId: "handcart",
+        domainId: "default",
+        position: node.position
+      }),
+    /cargo channel already bound/
+  );
+
+  assert.equal(
+    simulation.world
+      .getEntity("future-cart"),
+    undefined
+  );
+  assert.equal(
+    simulation.transports
+      .get("future-cart"),
+    null
+  );
+});
