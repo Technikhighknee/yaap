@@ -19,6 +19,7 @@ const blueprint = {
 
   layers: [
     {
+      spatialMode: "owned",
       id: "ground",
       kind: "floor",
       tags: ["cell-level"],
@@ -175,6 +176,7 @@ const blueprint = {
       }
     },
     {
+      spatialMode: "owned",
       id: "cellar",
       kind: "floor",
       tags: ["cellar"],

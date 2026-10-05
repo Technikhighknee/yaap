@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { Navigation } from "world-core";
+
 import { createSimulation } from "../src/simulation.js";
 import {
   tavernDefinition,
   foundryDefinition,
+  marketplaceDefinition,
   placeDefinitions,
   prisonDefinition,
   residenceDefinition,
@@ -344,6 +347,192 @@ test("foundry is one workshop with concrete shared functional anchors", () => {
     foundryDefinition.getSpace("workshop")?.defaultAnchorId,
     "workshop-center"
   );
+});
+
+test("marketplace is an open embedded square with five Guild 2 market stalls", () => {
+  assert.equal(
+    marketplaceDefinition.id,
+    "marketplace"
+  );
+  assert.equal(
+    marketplaceDefinition.kind,
+    "marketplace"
+  );
+  assert.deepEqual(
+    marketplaceDefinition.layers.map(
+      (layer) => [
+        layer.id,
+        layer.spatialMode
+      ]
+    ),
+    [["market", "embedded"]]
+  );
+  assert.deepEqual(
+    marketplaceDefinition.spaces.map(
+      (space) => space.id
+    ),
+    ["market-square"]
+  );
+  assert.equal(
+    marketplaceDefinition.portals.length,
+    0
+  );
+
+  assert.deepEqual(
+    marketplaceDefinition
+      .getAnchorsByTag("market-stall")
+      .map((anchor) => anchor.id)
+      .sort(),
+    [
+      "food-stall",
+      "iron-goods-stall",
+      "miscellaneous-stall",
+      "raw-materials-stall",
+      "textiles-stall"
+    ]
+  );
+
+  const {
+    world,
+    navigation,
+    places
+  } = createSimulation();
+
+  const cityNavigation =
+    new Navigation();
+  cityNavigation.addNode({
+    id: "north-food",
+    x: 112,
+    y: 53
+  });
+  cityNavigation.addNode({
+    id: "south-food",
+    x: 212,
+    y: 83
+  });
+  navigation.registerTopology(
+    "city-market-navigation",
+    cityNavigation
+  );
+  navigation.bindDomain(
+    "default",
+    "city-market-navigation"
+  );
+
+  const hostDomain =
+    world.getDomain("default");
+
+  places.createPlace({
+    id: "north-market",
+    definitionId: "marketplace",
+    layerDomains: {
+      market: "default"
+    },
+    embeddedNodeBindings: {
+      anchors: {
+        "food-stall": "north-food"
+      }
+    },
+    placement: {
+      domainId: "default",
+      containment: "footprint",
+      transform: {
+        x: 100,
+        y: 50,
+        rotation: 0,
+        scale: 1
+      }
+    }
+  });
+
+  places.createPlace({
+    id: "south-market",
+    definitionId: "marketplace",
+    layerDomains: {
+      market: "default"
+    },
+    embeddedNodeBindings: {
+      anchors: {
+        "food-stall": "south-food"
+      }
+    },
+    placement: {
+      domainId: "default",
+      containment: "footprint",
+      transform: {
+        x: 200,
+        y: 80,
+        rotation: 0,
+        scale: 1
+      }
+    }
+  });
+
+  assert.equal(
+    places.getDomainBinding("default"),
+    null
+  );
+  assert.equal(
+    world.getDomain("default"),
+    hostDomain
+  );
+
+  assert.deepEqual(
+    places.resolveAnchor(
+      "north-market",
+      "food-stall"
+    ),
+    {
+      ...marketplaceDefinition.getAnchor(
+        "food-stall"
+      ),
+      position: { x: 112, y: 53 },
+      nodeId: "north-food",
+      placeId: "north-market",
+      domainId: "default"
+    }
+  );
+  assert.deepEqual(
+    places.resolveAnchor(
+      "south-market",
+      "food-stall"
+    ),
+    {
+      ...marketplaceDefinition.getAnchor(
+        "food-stall"
+      ),
+      position: { x: 212, y: 83 },
+      nodeId: "south-food",
+      placeId: "south-market",
+      domainId: "default"
+    }
+  );
+
+  assert.deepEqual(
+    places.locate(
+      "default",
+      { x: 104, y: 54 }
+    ).places,
+    ["north-market"]
+  );
+  assert.deepEqual(
+    places.locate(
+      "default",
+      { x: 204, y: 84 }
+    ).spaces.map(
+      (space) => space.spaceId
+    ),
+    ["market-square"]
+  );
+
+  places.removePlace("north-market");
+  places.removePlace("south-market");
+
+  assert.equal(
+    world.getDomain("default"),
+    hostDomain
+  );
+  places.assertInternalConsistency();
 });
 
 test("simulation registers every shared place definition once", () => {

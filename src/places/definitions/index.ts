@@ -1,10 +1,15 @@
 import type { PlaceRegistry } from "place-core";
 
+import { marketplaceDefinition } from "./commerce/marketplace.js";
 import { prisonDefinition } from "./civic/prison.js";
 import { townHallDefinition } from "./civic/town-hall.js";
 import { tavernDefinition } from "./hospitality/tavern.js";
 import { foundryDefinition } from "./production/foundry.js";
 import { residenceDefinition } from "./residential/residence.js";
+
+export {
+  marketplaceDefinition
+} from "./commerce/marketplace.js";
 
 export {
   prisonDefinition
@@ -27,6 +32,7 @@ export {
 } from "./residential/residence.js";
 
 export const placeDefinitions = [
+  marketplaceDefinition,
   residenceDefinition,
   townHallDefinition,
   prisonDefinition,
