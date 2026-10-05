@@ -373,10 +373,21 @@ test("simulation exposes item and inventory registries without conflating resour
   const simulation =
     createSimulation();
 
-  assert.equal(
+  assert.ok(
     simulation.items
-      .definitions.size,
-    0
+      .definitions.size > 0
+  );
+  assert.ok(
+    simulation.items.get("iron")
+  );
+  assert.ok(
+    simulation.resources
+      .resourceTypes.has("iron")
+  );
+  assert.notEqual(
+    simulation.items.get("iron"),
+    simulation.resources
+      .resourceTypes.get("iron")
   );
   assert.equal(
     simulation.inventories
