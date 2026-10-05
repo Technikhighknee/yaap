@@ -164,8 +164,7 @@ test("alehouse has a dining room above a brew cellar", () => {
     alehouseDefinition.getAnchorsByTag("workstation")
       .map((anchor) => anchor.id)
       .sort(),
-    ["brew-vat-a", "brew-vat-b", "torture-table"]
-      .filter((id) => alehouseDefinition.getAnchor(id))
+    ["brew-vat-a", "brew-vat-b"]
   );
 
   assert.ok(alehouseDefinition.getAnchor("serving-counter"));
