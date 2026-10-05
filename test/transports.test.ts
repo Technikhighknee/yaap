@@ -311,6 +311,106 @@ test("a transport without an operator cannot start moving", () => {
 });
 
 
+test("clearing a transport operator cancels its active journey", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const navigation =
+    simulation.navigation
+      .navigationForDomain(
+        "default"
+      );
+  assert.ok(navigation);
+
+  const start =
+    navigation.nodes.get(
+      "foundry-street"
+    );
+  const destination =
+    navigation.nodes.get(
+      "market-center"
+    );
+
+  assert.ok(start);
+  assert.ok(destination);
+
+  simulation.world.addEntity({
+    id: "journey-carter",
+    kind: "person",
+    domainId: "default",
+    position: start.position,
+    mobility:
+      mobilityProfile("pedestrian")
+  });
+
+  const cart =
+    simulation.transports.create({
+      id: "journey-cart",
+      definitionId: "handcart",
+      domainId: "default",
+      position: start.position,
+      operatorEntityId:
+        "journey-carter"
+    });
+
+  assert.equal(
+    simulation.transports
+      .startJourney(
+        cart.id,
+        destination.id
+      ),
+    true
+  );
+
+  assert.ok(
+    simulation.world
+      .getEntity(cart.id)
+      ?.journey
+  );
+
+  simulation.transports
+    .clearOperator(
+      cart.id
+    );
+
+  const cartEntity =
+    simulation.world
+      .getEntity(cart.id);
+
+  assert.ok(cartEntity);
+  assert.equal(
+    cartEntity.journey,
+    null
+  );
+  assert.equal(
+    simulation.transports
+      .get(cart.id)
+      ?.operatorEntityId,
+    null
+  );
+
+  const stoppedPosition = {
+    ...cartEntity.position
+  };
+
+  for (
+    let tick = 0;
+    tick < 10;
+    tick += 1
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+  }
+
+  assert.deepEqual(
+    cartEntity.position,
+    stoppedPosition,
+    "transport must not continue moving after its operator leaves"
+  );
+});
+
 test("transport creation rejects prebound cargo before mutating the world", () => {
   const simulation =
     createSmallTownScenario();
