@@ -468,7 +468,7 @@ test("transport creation rejects prebound cargo before mutating the world", () =
 });
 
 
-test("iron moves from resource to mine to cart to foundry without entering the interior", () => {
+test("iron ore moves from resource to mine to cart to foundry without entering the interior", () => {
   const simulation =
     createSmallTownScenario();
 
@@ -541,7 +541,7 @@ test("iron moves from resource to mine to cart to foundry without entering the i
       undefined
   );
   assert.equal(
-    mineStorage.quantityOf("iron"),
+    mineStorage.quantityOf("iron-ore"),
     5
   );
 
@@ -579,7 +579,7 @@ test("iron moves from resource to mine to cart to foundry without entering the i
       targetChannel: "storage",
       manifest: [
         {
-          itemId: "iron",
+          itemId: "iron-ore",
           amount: 5
         }
       ]
@@ -590,11 +590,11 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     "travelling"
   );
   assert.equal(
-    mineStorage.quantityOf("iron"),
+    mineStorage.quantityOf("iron-ore"),
     0
   );
   assert.equal(
-    cargo.quantityOf("iron"),
+    cargo.quantityOf("iron-ore"),
     5
   );
 
@@ -670,12 +670,12 @@ test("iron moves from resource to mine to cart to foundry without entering the i
   );
 
   assert.equal(
-    cargo.quantityOf("iron"),
+    cargo.quantityOf("iron-ore"),
     0
   );
   assert.equal(
     foundryStorage.quantityOf(
-      "iron"
+      "iron-ore"
     ),
     5
   );
