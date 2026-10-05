@@ -14,6 +14,12 @@ import {
 } from "place-core";
 
 import {
+  registerGatheringOutputs
+} from "./gathering/definitions.js";
+import {
+  GatheringSystem
+} from "./gathering/system.js";
+import {
   InventoryBindingRegistry
 } from "./inventory/bindings.js";
 import {
@@ -77,6 +83,19 @@ export function createSimulation() {
   const transfers =
     new PlaceTransferRegistry();
 
+  const gathering =
+    new GatheringSystem({
+      world,
+      navigation,
+      resources,
+      items,
+      inventoryBindings,
+      transfers
+    });
+  registerGatheringOutputs(
+    gathering
+  );
+
   const transports =
     new TransportRegistry({
       world,
@@ -99,6 +118,7 @@ export function createSimulation() {
     inventories,
     inventoryBindings,
     transfers,
+    gathering,
     transports
   };
 }
@@ -117,6 +137,9 @@ export function stepSimulation(
   );
 
   simulation.transports.step();
+  simulation.gathering.step(
+    deltaSeconds
+  );
 
   stepPlaceSimulation(
     simulation.places,
