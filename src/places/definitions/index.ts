@@ -2,7 +2,7 @@ import type { PlaceRegistry } from "place-core";
 
 import { prisonDefinition } from "./civic/prison.js";
 import { townHallDefinition } from "./civic/town-hall.js";
-import { alehouseDefinition } from "./hospitality/alehouse.js";
+import { tavernDefinition } from "./hospitality/tavern.js";
 import { foundryDefinition } from "./production/foundry.js";
 import { residenceDefinition } from "./residential/residence.js";
 
@@ -15,8 +15,8 @@ export {
 } from "./civic/town-hall.js";
 
 export {
-  alehouseDefinition
-} from "./hospitality/alehouse.js";
+  tavernDefinition
+} from "./hospitality/tavern.js";
 
 export {
   foundryDefinition
@@ -30,7 +30,7 @@ export const placeDefinitions = [
   residenceDefinition,
   townHallDefinition,
   prisonDefinition,
-  alehouseDefinition,
+  tavernDefinition,
   foundryDefinition
 ] as const;
 
