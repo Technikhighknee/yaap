@@ -6,13 +6,18 @@ import {
 } from "world-core";
 
 import {
-  planTravel
+  planTravel,
+  startTravel
 } from "place-core";
 
 import {
   createSmallTownScenario,
   SMALL_TOWN_IDS
 } from "../src/scenarios/small-town.js";
+
+import {
+  stepSimulation
+} from "../src/simulation.js";
 
 test("small town composes owned interiors with one embedded marketplace", () => {
   const simulation =
@@ -140,4 +145,142 @@ test("small town composes owned interiors with one embedded marketplace", () => 
 
   places.assertInternalConsistency();
   world.assertInternalConsistency();
+});
+
+
+test("buyer actually travels from the residence bed to the marketplace food stall", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const {
+    world,
+    places,
+    bridge
+  } = simulation;
+
+  const bed =
+    places.resolveAnchor(
+      SMALL_TOWN_IDS.residence,
+      "bed"
+    );
+  const foodStall =
+    places.resolveAnchor(
+      SMALL_TOWN_IDS.marketplace,
+      "food-stall"
+    );
+
+  assert.ok(bed);
+  assert.ok(foodStall);
+
+  world.addEntity({
+    id: "buyer",
+    domainId: bed.domainId,
+    position: bed.position,
+    mobility:
+      mobilityProfile("pedestrian")
+  });
+
+  const travel =
+    startTravel(
+      places,
+      bridge,
+      "buyer",
+      {
+        placeId:
+          SMALL_TOWN_IDS.marketplace,
+        anchorId: "food-stall"
+      }
+    );
+
+  assert.ok(travel);
+  assert.equal(
+    travel.status,
+    "active"
+  );
+  assert.ok(
+    places.entitiesInPlace(
+      SMALL_TOWN_IDS.residence
+    ).has("buyer")
+  );
+
+  const deltaSeconds = 0.25;
+  const maxTicks = 2_000;
+  let ticks = 0;
+
+  while (
+    places.activeTravels.has(
+      "buyer"
+    ) &&
+    ticks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < maxTicks,
+    "buyer should complete the trip within the simulation limit"
+  );
+  assert.equal(
+    places.activeTravels.has(
+      "buyer"
+    ),
+    false
+  );
+
+  const buyer =
+    world.getEntity("buyer");
+  assert.ok(buyer);
+
+  assert.equal(
+    buyer.domainId,
+    foodStall.domainId
+  );
+  assert.deepEqual(
+    buyer.position,
+    foodStall.position
+  );
+
+  const location =
+    places.getEntityLocation(
+      "buyer"
+    );
+  assert.ok(location);
+
+  assert.deepEqual(
+    location.places,
+    [SMALL_TOWN_IDS.marketplace]
+  );
+  assert.deepEqual(
+    location.spaces.map(
+      (space) => space.spaceId
+    ),
+    ["market-square"]
+  );
+
+  assert.equal(
+    places.entitiesInPlace(
+      SMALL_TOWN_IDS.residence
+    ).has("buyer"),
+    false
+  );
+  assert.ok(
+    places.entitiesInPlace(
+      SMALL_TOWN_IDS.marketplace
+    ).has("buyer")
+  );
+  assert.ok(
+    places.entitiesInSpace(
+      SMALL_TOWN_IDS.marketplace,
+      "market-square"
+    ).has("buyer")
+  );
+
+  places.assertInternalConsistency();
+  world.assertInternalConsistency();
+  simulation.navigation
+    .assertInternalConsistency();
 });
