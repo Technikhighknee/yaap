@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { createSimulation } from "../src/simulation.js";
-import { smallHutDefinition } from "../src/places/definitions/index.js";
+import {
+  placeDefinitions,
+  smallHutDefinition,
+  townHallDefinition
+} from "../src/places/definitions/index.js";
 
 test("small hut contains only the currently needed residential topology", () => {
   assert.equal(smallHutDefinition.id, "small-hut");
@@ -32,12 +36,43 @@ test("small hut contains only the currently needed residential topology", () => 
   );
 });
 
-test("simulation registers the shared small hut definition once", () => {
+test("town hall contains only the entrance hall and council chamber", () => {
+  assert.equal(townHallDefinition.id, "town-hall");
+
+  assert.deepEqual(
+    townHallDefinition.layers.map((layer) => layer.id),
+    ["ground"]
+  );
+
+  assert.deepEqual(
+    townHallDefinition.spaces.map((space) => space.id),
+    ["entrance-hall", "council-chamber"]
+  );
+
+  assert.deepEqual(
+    townHallDefinition.portals.map((portal) => portal.id),
+    ["front-door", "council-chamber-door"]
+  );
+
+  assert.equal(
+    townHallDefinition.getSpace("entrance-hall")?.defaultAnchorId,
+    "entrance-hall-center"
+  );
+  assert.equal(
+    townHallDefinition.getSpace("council-chamber")?.defaultAnchorId,
+    "council-chamber-center"
+  );
+});
+
+test("simulation registers every shared place definition once", () => {
   const { places } = createSimulation();
 
-  assert.equal(places.definitions.size, 1);
-  assert.equal(
-    places.getDefinition("small-hut"),
-    smallHutDefinition
-  );
+  assert.equal(places.definitions.size, placeDefinitions.length);
+
+  for (const definition of placeDefinitions) {
+    assert.equal(
+      places.getDefinition(definition.id),
+      definition
+    );
+  }
 });
