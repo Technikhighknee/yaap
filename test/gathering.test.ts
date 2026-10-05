@@ -530,3 +530,165 @@ test("multiple workers gather the same permanent resource node concurrently", ()
   simulation.world
     .assertInternalConsistency();
 });
+
+
+test("mine gathers multiple permanent ore resources into shared storage", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  simulation.world
+    .configureLocalSteering({
+      enabled: true
+    });
+
+  const endpoint =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.mine
+    );
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+
+  assert.ok(endpoint);
+  assert.ok(storage);
+
+  const assignments = [
+    {
+      workerId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      itemId: "iron"
+    },
+    {
+      workerId: "silver-miner",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.silver,
+      itemId: "silver"
+    },
+    {
+      workerId: "gold-miner",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.gold,
+      itemId: "gold"
+    },
+    {
+      workerId: "gem-miner",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.gemstone,
+      itemId: "gemstone"
+    }
+  ] as const;
+
+  for (
+    const assignment
+    of assignments.slice(1)
+  ) {
+    simulation.world.addEntity({
+      id: assignment.workerId,
+      kind: "person",
+      domainId: endpoint.domainId,
+      position: endpoint.position,
+      mobility:
+        mobilityProfile(
+          "pedestrian"
+        )
+    });
+
+    createOwnerInventory(
+      simulation,
+      {
+        kind: "entity",
+        id: assignment.workerId
+      },
+      "carried",
+      {
+        slotCount: 1,
+        slotCapacity: 10
+      }
+    );
+  }
+
+  const jobs = assignments.map(
+    (assignment) =>
+      simulation.gathering.start({
+        workerEntityId:
+          assignment.workerId,
+        resourceNodeId:
+          assignment.resourceNodeId,
+        depositPlaceId:
+          SMALL_TOWN_IDS.mine
+      })
+  );
+
+  const deltaSeconds = 0.25;
+  const maxTicks = 4_000;
+  let ticks = 0;
+
+  while (
+    jobs.some(
+      (job) =>
+        job.phase !== "complete" &&
+        job.phase !== "failed"
+    ) &&
+    ticks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < maxTicks,
+    "all ore gathering jobs should complete"
+  );
+
+  for (const job of jobs) {
+    assert.equal(
+      job.phase,
+      "complete",
+      job.failureReason ??
+        undefined
+    );
+  }
+
+  for (
+    const assignment
+    of assignments
+  ) {
+    assert.equal(
+      storage.quantityOf(
+        assignment.itemId
+      ),
+      5
+    );
+
+    const node =
+      simulation.resources.getNode(
+        assignment.resourceNodeId
+      );
+
+    assert.ok(node);
+    assert.equal(
+      node.resourceTypeId,
+      assignment.itemId,
+      "gathering must not mutate permanent ore nodes"
+    );
+  }
+
+  assert.equal(
+    storage.slots.filter(
+      (slot) =>
+        slot.itemId !== null
+    ).length,
+    4,
+    "four ore types should occupy four independent inventory slots"
+  );
+});
