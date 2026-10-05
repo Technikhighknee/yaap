@@ -32,6 +32,12 @@ import {
 import {
   ResourceRegistry
 } from "./resources/registry.js";
+import {
+  registerTransportDefinitions
+} from "./transports/definitions.js";
+import {
+  TransportRegistry
+} from "./transports/registry.js";
 
 export function createSimulation() {
   const world = new World();
@@ -65,6 +71,18 @@ export function createSimulation() {
       inventories
     );
 
+  const transports =
+    new TransportRegistry({
+      world,
+      navigation,
+      places,
+      inventories,
+      inventoryBindings
+    });
+  registerTransportDefinitions(
+    transports
+  );
+
   return {
     world,
     navigation,
@@ -73,7 +91,8 @@ export function createSimulation() {
     resources,
     items,
     inventories,
-    inventoryBindings
+    inventoryBindings,
+    transports
   };
 }
 
@@ -89,6 +108,8 @@ export function stepSimulation(
     simulation.navigation,
     deltaSeconds
   );
+
+  simulation.transports.step();
 
   stepPlaceSimulation(
     simulation.places,
