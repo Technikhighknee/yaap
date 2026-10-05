@@ -124,6 +124,12 @@ function distanceToGeometry(
           geometry.points.length
       ];
 
+    if (!a || !b) {
+      throw new Error(
+        "polygon transfer footprint is missing an edge endpoint"
+      );
+    }
+
     minimumSquared =
       Math.min(
         minimumSquared,
