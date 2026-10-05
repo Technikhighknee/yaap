@@ -234,6 +234,22 @@ export class TransportRegistry {
       );
     }
 
+    if (
+      this.environment
+        .inventoryBindings
+        .getBinding(
+          {
+            kind: "entity",
+            id: input.id
+          },
+          "cargo"
+        )
+    ) {
+      throw new Error(
+        `transport cargo channel already bound: ${input.id}`
+      );
+    }
+
     const requestedOperator =
       input.operatorEntityId ??
       null;
