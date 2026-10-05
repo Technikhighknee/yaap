@@ -49,11 +49,16 @@ function result(
   });
 }
 
+interface MutableInventorySlot {
+  itemId: ItemId | null;
+  quantity: number;
+}
+
 export class Inventory {
   readonly id: string;
   readonly slotCapacity: number;
-  readonly slots:
-    InventorySlot[];
+  private readonly slotsInternal:
+    MutableInventorySlot[];
 
   constructor(
     private readonly items:
@@ -76,7 +81,7 @@ export class Inventory {
     this.id = input.id;
     this.slotCapacity =
       input.slotCapacity;
-    this.slots = Array.from(
+    this.slotsInternal = Array.from(
       {
         length:
           input.slotCount
@@ -89,7 +94,12 @@ export class Inventory {
   }
 
   get slotCount(): number {
-    return this.slots.length;
+    return this.slotsInternal.length;
+  }
+
+  get slots():
+    readonly InventorySlot[] {
+    return this.slotsInternal;
   }
 
   quantityOf(
@@ -101,7 +111,7 @@ export class Inventory {
 
     for (
       const slot
-      of this.slots
+      of this.slotsInternal
     ) {
       if (
         slot.itemId === itemId
@@ -122,7 +132,7 @@ export class Inventory {
 
     for (
       const slot
-      of this.slots
+      of this.slotsInternal
     ) {
       if (
         slot.itemId === itemId
@@ -155,7 +165,7 @@ export class Inventory {
 
     for (
       const slot
-      of this.slots
+      of this.slotsInternal
     ) {
       if (
         remaining === 0
@@ -184,7 +194,7 @@ export class Inventory {
 
     for (
       const slot
-      of this.slots
+      of this.slotsInternal
     ) {
       if (
         remaining === 0
@@ -229,7 +239,7 @@ export class Inventory {
 
     for (
       let index =
-        this.slots.length - 1;
+        this.slotsInternal.length - 1;
       index >= 0;
       index -= 1
     ) {
@@ -375,7 +385,7 @@ export class Inventory {
 
     for (
       const slot
-      of this.slots
+      of this.slotsInternal
     ) {
       if (
         slot.itemId === null
@@ -413,7 +423,7 @@ export class Inventory {
 
     return {
       slotCount:
-        this.slots.length,
+        this.slotsInternal.length,
       occupiedSlotCount
     };
   }
