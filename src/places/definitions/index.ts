@@ -6,6 +6,7 @@ import { townHallDefinition } from "./civic/town-hall.js";
 import { tavernDefinition } from "./hospitality/tavern.js";
 import { foundryDefinition } from "./production/foundry.js";
 import { mineDefinition } from "./production/mine.js";
+import { woodcutterCampDefinition } from "./production/woodcutter-camp.js";
 import { residenceDefinition } from "./residential/residence.js";
 
 export {
@@ -33,6 +34,10 @@ export {
 } from "./production/mine.js";
 
 export {
+  woodcutterCampDefinition
+} from "./production/woodcutter-camp.js";
+
+export {
   residenceDefinition
 } from "./residential/residence.js";
 
@@ -43,7 +48,8 @@ export const placeDefinitions = [
   prisonDefinition,
   tavernDefinition,
   foundryDefinition,
-  mineDefinition
+  mineDefinition,
+  woodcutterCampDefinition
 ] as const;
 
 export function registerPlaceDefinitions(registry: PlaceRegistry): void {
