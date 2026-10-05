@@ -78,6 +78,18 @@ export class Inventory {
       "inventory slotCapacity"
     );
 
+    if (
+      input.slotCount >
+      Math.floor(
+        Number.MAX_SAFE_INTEGER /
+          input.slotCapacity
+      )
+    ) {
+      throw new RangeError(
+        "inventory total capacity must be a safe integer"
+      );
+    }
+
     this.id = input.id;
     this.slotCapacity =
       input.slotCapacity;
