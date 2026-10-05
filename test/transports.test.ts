@@ -311,6 +311,106 @@ test("a transport without an operator cannot start moving", () => {
 });
 
 
+test("clearing a transport operator cancels its active journey", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const navigation =
+    simulation.navigation
+      .navigationForDomain(
+        "default"
+      );
+  assert.ok(navigation);
+
+  const start =
+    navigation.nodes.get(
+      "foundry-street"
+    );
+  const destination =
+    navigation.nodes.get(
+      "market-center"
+    );
+
+  assert.ok(start);
+  assert.ok(destination);
+
+  simulation.world.addEntity({
+    id: "journey-carter",
+    kind: "person",
+    domainId: "default",
+    position: start.position,
+    mobility:
+      mobilityProfile("pedestrian")
+  });
+
+  const cart =
+    simulation.transports.create({
+      id: "journey-cart",
+      definitionId: "handcart",
+      domainId: "default",
+      position: start.position,
+      operatorEntityId:
+        "journey-carter"
+    });
+
+  assert.equal(
+    simulation.transports
+      .startJourney(
+        cart.id,
+        destination.id
+      ),
+    true
+  );
+
+  assert.ok(
+    simulation.world
+      .getEntity(cart.id)
+      ?.journey
+  );
+
+  simulation.transports
+    .clearOperator(
+      cart.id
+    );
+
+  const cartEntity =
+    simulation.world
+      .getEntity(cart.id);
+
+  assert.ok(cartEntity);
+  assert.equal(
+    cartEntity.journey,
+    null
+  );
+  assert.equal(
+    simulation.transports
+      .get(cart.id)
+      ?.operatorEntityId,
+    null
+  );
+
+  const stoppedPosition = {
+    ...cartEntity.position
+  };
+
+  for (
+    let tick = 0;
+    tick < 10;
+    tick += 1
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+  }
+
+  assert.deepEqual(
+    cartEntity.position,
+    stoppedPosition,
+    "transport must not continue moving after its operator leaves"
+  );
+});
+
 test("transport creation rejects prebound cargo before mutating the world", () => {
   const simulation =
     createSmallTownScenario();
@@ -468,42 +568,23 @@ test("iron moves from resource to mine to cart to foundry without entering the i
       cart.id
     );
 
-  assert.equal(
-    simulation.transfers
-      .canEntityTransfer(
-        {
-          world: simulation.world,
-          inventoryBindings:
-            simulation.inventoryBindings
-        },
-        cart.id,
-        SMALL_TOWN_IDS.mine
-      ),
-    true
-  );
-
-  assert.deepEqual(
-    simulation.transfers
-      .transferPlaceToEntity(
-        {
-          world: simulation.world,
-          inventoryBindings:
-            simulation.inventoryBindings
-        },
+  const haulingJob =
+    simulation.hauling.start({
+      transportId: cart.id,
+      sourcePlaceId:
         SMALL_TOWN_IDS.mine,
-        "storage",
-        cart.id,
-        "cargo",
-        "iron",
-        5
-      ),
-    {
-      requested: 5,
-      moved: 5,
-      remainder: 0
-    }
-  );
+      sourceChannel: "storage",
+      targetPlaceId:
+        SMALL_TOWN_IDS.foundry,
+      targetChannel: "storage",
+      itemId: "iron",
+      amount: 5
+    });
 
+  assert.equal(
+    String(haulingJob.phase),
+    "travelling"
+  );
   assert.equal(
     mineStorage.quantityOf("iron"),
     0
@@ -513,22 +594,11 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     5
   );
 
-  assert.equal(
-    simulation.transports
-      .startJourney(
-        cart.id,
-        foundryEndpoint
-          .navigationNodeId
-      ),
-    true
-  );
-
   let transportTicks = 0;
 
   while (
-    simulation.world
-      .getEntity(cart.id)
-      ?.journey &&
+    haulingJob.phase !== "complete" &&
+    haulingJob.phase !== "failed" &&
     transportTicks < maxTicks
   ) {
     stepSimulation(
@@ -540,7 +610,17 @@ test("iron moves from resource to mine to cart to foundry without entering the i
 
   assert.ok(
     transportTicks < maxTicks,
-    "cart should reach the foundry"
+    "hauling job should reach the foundry"
+  );
+  assert.equal(
+    haulingJob.phase,
+    "complete",
+    haulingJob.failureReason ??
+      undefined
+  );
+  assert.equal(
+    haulingJob.deliveredAmount,
+    5
   );
 
   const cartEntity =
@@ -569,6 +649,11 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     operator.position,
     foundryEndpoint.position
   );
+  assert.ok(
+    foundryEndpoint.position.y <
+      115.5,
+    "foundry loading target must remain outside the building footprint"
+  );
 
   assert.equal(
     simulation.transfers
@@ -584,28 +669,6 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     true
   );
 
-  assert.deepEqual(
-    simulation.transfers
-      .transferEntityToPlace(
-        {
-          world: simulation.world,
-          inventoryBindings:
-            simulation.inventoryBindings
-        },
-        cart.id,
-        "cargo",
-        SMALL_TOWN_IDS.foundry,
-        "storage",
-        "iron",
-        5
-      ),
-    {
-      requested: 5,
-      moved: 5,
-      remainder: 0
-    }
-  );
-
   assert.equal(
     cargo.quantityOf("iron"),
     0
@@ -616,12 +679,6 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     ),
     5
   );
-
-  const foundry =
-    simulation.places.getPlace(
-      SMALL_TOWN_IDS.foundry
-    );
-  assert.ok(foundry);
 
   const foundryInteriorDomain =
     simulation.places

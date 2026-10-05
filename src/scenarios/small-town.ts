@@ -139,12 +139,29 @@ export function createSmallTownScenario() {
     );
   }
 
+  const defaultNavigation =
+    simulation.navigation
+      .navigationForDomain(
+        "default"
+      );
+  const foundryLoading =
+    defaultNavigation?.nodes.get(
+      "foundry-loading"
+    );
+
+  if (!foundryLoading) {
+    throw new Error(
+      "small-town foundry loading node is unresolved"
+    );
+  }
+
   simulation.transfers.register({
     placeId: SMALL_TOWN_IDS.foundry,
-    domainId: foundryStreet.domainId,
-    position: foundryStreet.position,
+    domainId: "default",
+    position:
+      foundryLoading.position,
     navigationNodeId:
-      foundryStreet.nodeId,
+      foundryLoading.id,
     range: 6
   });
 
