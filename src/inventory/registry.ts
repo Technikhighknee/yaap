@@ -58,14 +58,6 @@ export class InventoryRegistry {
     );
   }
 
-  remove(
-    id: InventoryId
-  ): boolean {
-    return this.inventories.delete(
-      id
-    );
-  }
-
   assertInternalConsistency(): {
     inventoryCount: number;
   } {
