@@ -14,8 +14,14 @@ import {
 } from "place-core";
 
 import {
+  InventoryBindingRegistry
+} from "./inventory/bindings.js";
+import {
   InventoryRegistry
 } from "./inventory/registry.js";
+import {
+  registerItemDefinitions
+} from "./items/definitions.js";
 import {
   ItemRegistry
 } from "./items/registry.js";
@@ -50,8 +56,14 @@ export function createSimulation() {
 
   const items =
     new ItemRegistry();
+  registerItemDefinitions(items);
+
   const inventories =
     new InventoryRegistry(items);
+  const inventoryBindings =
+    new InventoryBindingRegistry(
+      inventories
+    );
 
   return {
     world,
@@ -60,7 +72,8 @@ export function createSimulation() {
     places,
     resources,
     items,
-    inventories
+    inventories,
+    inventoryBindings
   };
 }
 
