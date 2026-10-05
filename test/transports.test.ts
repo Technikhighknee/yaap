@@ -569,6 +569,11 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     operator.position,
     foundryEndpoint.position
   );
+  assert.ok(
+    foundryEndpoint.position.y <
+      115.5,
+    "foundry loading target must remain outside the building footprint"
+  );
 
   assert.equal(
     simulation.transfers
