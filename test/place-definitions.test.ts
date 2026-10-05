@@ -3,6 +3,7 @@ import test from "node:test";
 
 import { createSimulation } from "../src/simulation.js";
 import {
+  alehouseDefinition,
   placeDefinitions,
   prisonDefinition,
   smallHutDefinition,
@@ -113,6 +114,34 @@ test("prison separates detention cells from the cellar torture chamber", () => {
       ]
     );
   }
+});
+
+test("alehouse has a dining room above a brew cellar", () => {
+  assert.equal(alehouseDefinition.id, "alehouse");
+
+  assert.deepEqual(
+    alehouseDefinition.layers.map((layer) => layer.id),
+    ["ground", "cellar"]
+  );
+
+  assert.deepEqual(
+    alehouseDefinition.spaces.map((space) => space.id),
+    ["dining-room", "brew-cellar"]
+  );
+
+  assert.deepEqual(
+    alehouseDefinition.portals.map((portal) => portal.id),
+    ["front-door", "stairs-to-cellar"]
+  );
+
+  assert.equal(
+    alehouseDefinition.getSpace("dining-room")?.defaultAnchorId,
+    "dining-room-center"
+  );
+  assert.equal(
+    alehouseDefinition.getSpace("brew-cellar")?.defaultAnchorId,
+    "brew-cellar-center"
+  );
 });
 
 test("simulation registers every shared place definition once", () => {
