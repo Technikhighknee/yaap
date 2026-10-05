@@ -3,12 +3,14 @@ import {
   NavigationRegistry,
   World,
   startJourney,
+  stepSimulation as stepWorldSimulation,
   stopJourney
 } from "world-core";
 
 import {
   PlaceRegistry,
-  WorldCoreBridge
+  WorldCoreBridge,
+  stepPlaceSimulation
 } from "place-core";
 
 import { registerPlaceDefinitions } from "./places/definitions/index.js";
@@ -34,4 +36,24 @@ export function createSimulation() {
     bridge,
     places
   };
+}
+
+export type Simulation =
+  ReturnType<typeof createSimulation>;
+
+export function stepSimulation(
+  simulation: Simulation,
+  deltaSeconds: number
+): void {
+  stepWorldSimulation(
+    simulation.world,
+    simulation.navigation,
+    deltaSeconds
+  );
+
+  stepPlaceSimulation(
+    simulation.places,
+    simulation.bridge,
+    deltaSeconds
+  );
 }
