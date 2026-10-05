@@ -8,6 +8,10 @@ import type {
 } from "../inventory/bindings.js";
 
 import type {
+  Inventory
+} from "../inventory/inventory.js";
+
+import type {
   PlaceTransferRegistry
 } from "../logistics/transfer.js";
 
@@ -16,7 +20,8 @@ import type {
 } from "../transports/registry.js";
 
 import type {
-  HaulingJob
+  HaulingJob,
+  HaulingManifestLine
 } from "./types.js";
 
 export interface HaulingEnvironment {
@@ -43,6 +48,181 @@ function assertPositiveSafeInteger(
   }
 }
 
+function canonicalManifest(
+  manifest:
+    readonly HaulingManifestLine[]
+): readonly Readonly<HaulingManifestLine>[] {
+  if (manifest.length === 0) {
+    throw new TypeError(
+      "hauling manifest must not be empty"
+    );
+  }
+
+  const seen =
+    new Set<string>();
+
+  return Object.freeze(
+    manifest.map((line) => {
+      if (line.itemId.length === 0) {
+        throw new TypeError(
+          "hauling manifest itemId must not be empty"
+        );
+      }
+
+      assertPositiveSafeInteger(
+        line.amount,
+        "hauling manifest amount"
+      );
+
+      if (seen.has(line.itemId)) {
+        throw new Error(
+          `hauling manifest contains duplicate item: ${line.itemId}`
+        );
+      }
+      seen.add(line.itemId);
+
+      return Object.freeze({
+        itemId: line.itemId,
+        amount: line.amount
+      });
+    })
+  );
+}
+
+function inventoryCanAcceptManifest(
+  inventory: Inventory,
+  manifest:
+    readonly Readonly<HaulingManifestLine>[]
+): boolean {
+  let emptySlots =
+    inventory.slots.filter(
+      (slot) =>
+        slot.itemId === null
+    ).length;
+
+  for (const line of manifest) {
+    let remaining =
+      line.amount;
+
+    for (const slot of inventory.slots) {
+      if (
+        slot.itemId !==
+        line.itemId
+      ) {
+        continue;
+      }
+
+      remaining -= Math.min(
+        remaining,
+        inventory.slotCapacity -
+          slot.quantity
+      );
+
+      if (remaining === 0) {
+        break;
+      }
+    }
+
+    if (remaining === 0) {
+      continue;
+    }
+
+    const neededSlots =
+      Math.ceil(
+        remaining /
+          inventory.slotCapacity
+      );
+
+    emptySlots -=
+      neededSlots;
+
+    if (emptySlots < 0) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function transferManifest(
+  source: Inventory,
+  target: Inventory,
+  manifest:
+    readonly Readonly<HaulingManifestLine>[]
+): void {
+  const moved:
+    Readonly<HaulingManifestLine>[] = [];
+
+  for (const line of manifest) {
+    const result =
+      source.transferTo(
+        target,
+        line.itemId,
+        line.amount
+      );
+
+    if (
+      result.moved ===
+      line.amount
+    ) {
+      moved.push(line);
+      continue;
+    }
+
+    if (result.moved > 0) {
+      const currentRollback =
+        target.transferTo(
+          source,
+          line.itemId,
+          result.moved
+        );
+
+      if (
+        currentRollback.moved !==
+        result.moved
+      ) {
+        throw new Error(
+          "hauling manifest current-line rollback failed"
+        );
+      }
+    }
+
+    for (
+      let index =
+        moved.length - 1;
+      index >= 0;
+      index -= 1
+    ) {
+      const previous =
+        moved[index];
+
+      if (!previous) {
+        continue;
+      }
+
+      const rollback =
+        target.transferTo(
+          source,
+          previous.itemId,
+          previous.amount
+        );
+
+      if (
+        rollback.moved !==
+        previous.amount
+      ) {
+        throw new Error(
+          "hauling manifest rollback failed"
+        );
+      }
+    }
+
+    throw new Error(
+      "hauling manifest transfer changed after validation"
+    );
+  }
+}
+
 export class HaulingSystem {
   readonly jobs =
     new Map<string, HaulingJob>();
@@ -60,13 +240,13 @@ export class HaulingSystem {
     targetPlaceId: string;
     targetChannel:
       InventoryChannel;
-    itemId: string;
-    amount: number;
+    manifest:
+      readonly HaulingManifestLine[];
   }): HaulingJob {
-    assertPositiveSafeInteger(
-      input.amount,
-      "hauling amount"
-    );
+    const manifest =
+      canonicalManifest(
+        input.manifest
+      );
 
     if (
       input.sourcePlaceId ===
@@ -168,33 +348,37 @@ export class HaulingSystem {
       );
     }
 
+    for (const line of manifest) {
+      if (
+        source.quantityOf(
+          line.itemId
+        ) < line.amount
+      ) {
+        throw new Error(
+          `hauling source lacks requested item: ${line.itemId}`
+        );
+      }
+    }
+
     if (
-      source.quantityOf(
-        input.itemId
-      ) < input.amount
+      !inventoryCanAcceptManifest(
+        cargo,
+        manifest
+      )
     ) {
       throw new Error(
-        "hauling source lacks requested items"
+        "hauling cargo lacks requested manifest capacity"
       );
     }
 
     if (
-      cargo.remainingCapacity(
-        input.itemId
-      ) < input.amount
+      !inventoryCanAcceptManifest(
+        target,
+        manifest
+      )
     ) {
       throw new Error(
-        "hauling cargo lacks requested capacity"
-      );
-    }
-
-    if (
-      target.remainingCapacity(
-        input.itemId
-      ) < input.amount
-    ) {
-      throw new Error(
-        "hauling target lacks requested capacity"
+        "hauling target lacks requested manifest capacity"
       );
     }
 
@@ -230,25 +414,11 @@ export class HaulingSystem {
       );
     }
 
-    const loaded =
-      this.environment.transfers
-        .transferPlaceToEntity(
-          transferEnvironment,
-          input.sourcePlaceId,
-          input.sourceChannel,
-          input.transportId,
-          "cargo",
-          input.itemId,
-          input.amount
-        );
-
-    if (
-      loaded.moved !== input.amount
-    ) {
-      throw new Error(
-        "hauling load changed after validation"
-      );
-    }
+    transferManifest(
+      source,
+      cargo,
+      manifest
+    );
 
     try {
       if (
@@ -264,29 +434,11 @@ export class HaulingSystem {
         );
       }
     } catch (error) {
-      const rollback =
-        this.environment.transfers
-          .transferEntityToPlace(
-            transferEnvironment,
-            input.transportId,
-            "cargo",
-            input.sourcePlaceId,
-            input.sourceChannel,
-            input.itemId,
-            input.amount
-          );
-
-      if (
-        rollback.moved !==
-        input.amount
-      ) {
-        throw new Error(
-          "hauling load rollback failed",
-          {
-            cause: error
-          }
-        );
-      }
+      transferManifest(
+        cargo,
+        source,
+        manifest
+      );
 
       throw error;
     }
@@ -302,12 +454,8 @@ export class HaulingSystem {
         input.targetPlaceId,
       targetChannel:
         input.targetChannel,
-      itemId:
-        input.itemId,
-      amount:
-        input.amount,
+      manifest,
       phase: "travelling",
-      deliveredAmount: 0,
       failureReason: null
     };
 
@@ -408,11 +556,20 @@ export class HaulingSystem {
         continue;
       }
 
-      if (
-        cargo.quantityOf(
-          job.itemId
-        ) < job.amount
-      ) {
+      let cargoIntact = true;
+
+      for (const line of job.manifest) {
+        if (
+          cargo.quantityOf(
+            line.itemId
+          ) < line.amount
+        ) {
+          cargoIntact = false;
+          break;
+        }
+      }
+
+      if (!cargoIntact) {
         this.fail(
           job,
           "hauling cargo changed during transit"
@@ -421,33 +578,25 @@ export class HaulingSystem {
       }
 
       if (
-        target.remainingCapacity(
-          job.itemId
-        ) < job.amount
+        !inventoryCanAcceptManifest(
+          target,
+          job.manifest
+        )
       ) {
         this.fail(
           job,
-          "target no longer has capacity for complete hauling load"
+          "target no longer has capacity for complete hauling manifest"
         );
         continue;
       }
 
-      const delivered =
-        this.environment.transfers
-          .transferEntityToPlace(
-            transferEnvironment,
-            job.transportId,
-            "cargo",
-            job.targetPlaceId,
-            job.targetChannel,
-            job.itemId,
-            job.amount
-          );
-
-      if (
-        delivered.moved !==
-        job.amount
-      ) {
+      try {
+        transferManifest(
+          cargo,
+          target,
+          job.manifest
+        );
+      } catch {
         this.fail(
           job,
           "hauling unload changed after validation"
@@ -455,8 +604,6 @@ export class HaulingSystem {
         continue;
       }
 
-      job.deliveredAmount =
-        delivered.moved;
       job.phase = "complete";
     }
   }
