@@ -7,6 +7,9 @@ import {
 } from "./registry.js";
 
 export const ITEM_DEFINITIONS = [
+  { id: "iron-ore" },
+  { id: "silver-ore" },
+  { id: "gold-ore" },
   { id: "iron" },
   { id: "silver" },
   { id: "gold" },
