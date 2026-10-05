@@ -310,6 +310,11 @@ test("multiple workers gather the same permanent resource node concurrently", ()
   const simulation =
     createSmallTownScenario();
 
+  simulation.world
+    .configureLocalSteering({
+      enabled: true
+    });
+
   const endpoint =
     simulation.transfers.get(
       SMALL_TOWN_IDS.mine
