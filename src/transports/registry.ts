@@ -1,6 +1,7 @@
 import {
   mobilityProfile,
-  startJourney
+  startJourney,
+  stopJourney
 } from "world-core";
 
 import type {
@@ -401,6 +402,19 @@ export class TransportRegistry {
       transport.operatorEntityId !==
       null
     ) {
+      const entity =
+        this.environment.world
+          .getEntity(
+            transport.worldEntityId
+          );
+
+      if (entity?.journey) {
+        stopJourney(
+          entity,
+          this.environment.world
+        );
+      }
+
       this.operatedBy.delete(
         transport.operatorEntityId
       );
