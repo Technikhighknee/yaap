@@ -14,6 +14,12 @@ import {
 } from "place-core";
 
 import { registerPlaceDefinitions } from "./places/definitions/index.js";
+import {
+  registerResourceDefinitions
+} from "./resources/definitions.js";
+import {
+  ResourceRegistry
+} from "./resources/registry.js";
 
 export function createSimulation() {
   const world = new World();
@@ -30,11 +36,18 @@ export function createSimulation() {
   const places = new PlaceRegistry({ bridge });
   registerPlaceDefinitions(places);
 
+  const resources =
+    new ResourceRegistry();
+  registerResourceDefinitions(
+    resources
+  );
+
   return {
     world,
     navigation,
     bridge,
-    places
+    places,
+    resources
   };
 }
 
