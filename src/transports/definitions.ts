@@ -1,3 +1,7 @@
+import {
+  TransportRegistry
+} from "./registry.js";
+
 import type {
   TransportDefinition
 } from "./types.js";
@@ -37,3 +41,16 @@ export const TRANSPORT_DEFINITIONS = [
   }
 ] as const satisfies
   readonly TransportDefinition[];
+
+export function registerTransportDefinitions(
+  registry: TransportRegistry
+): void {
+  for (
+    const definition
+    of TRANSPORT_DEFINITIONS
+  ) {
+    registry.registerDefinition(
+      definition
+    );
+  }
+}
