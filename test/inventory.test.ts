@@ -302,6 +302,23 @@ test("transfer moves only what the target can accept without losing items", () =
     .assertInternalConsistency();
 });
 
+test("inventory rejects capacities whose total cannot be represented safely", () => {
+  const items = createItems();
+  const inventories =
+    new InventoryRegistry(items);
+
+  assert.throws(
+    () =>
+      inventories.create({
+        id: "impossible",
+        slotCount:
+          Number.MAX_SAFE_INTEGER,
+        slotCapacity: 2
+      }),
+    /total capacity must be a safe integer/
+  );
+});
+
 test("inventory rejects unknown items and invalid amounts", () => {
   const items = createItems();
   const inventories =
