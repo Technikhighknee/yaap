@@ -4,12 +4,25 @@ import {
 } from "world-core";
 
 import type {
-  Simulation
-} from "../simulation.js";
+  NavigationRegistry,
+  World
+} from "world-core";
+
+import type {
+  PlaceRegistry
+} from "place-core";
 
 import type {
   Inventory
 } from "../inventory/inventory.js";
+
+import type {
+  InventoryBindingRegistry
+} from "../inventory/bindings.js";
+
+import type {
+  InventoryRegistry
+} from "../inventory/registry.js";
 
 import type {
   TransportDefinition,
@@ -18,6 +31,17 @@ import type {
   TransportInstance,
   CreateTransportInput
 } from "./types.js";
+
+export interface TransportEnvironment {
+  readonly world: World;
+  readonly navigation:
+    NavigationRegistry;
+  readonly places: PlaceRegistry;
+  readonly inventories:
+    InventoryRegistry;
+  readonly inventoryBindings:
+    InventoryBindingRegistry;
+}
 
 function assertNonEmptyString(
   value: string,
@@ -66,8 +90,8 @@ export class TransportRegistry {
     >();
 
   constructor(
-    private readonly simulation:
-      Simulation
+    private readonly environment:
+      TransportEnvironment
   ) {}
 
   registerDefinition(
@@ -88,18 +112,35 @@ export class TransportRegistry {
       );
     }
 
+    const slotCount =
+      definition.cargo.slotCount;
+    const slotCapacity =
+      definition.cargo.slotCapacity;
+
     if (
       !Number.isSafeInteger(
-        definition.cargo.slotCount
+        slotCount
       ) ||
-      definition.cargo.slotCount <= 0 ||
+      slotCount <= 0 ||
       !Number.isSafeInteger(
-        definition.cargo.slotCapacity
+        slotCapacity
       ) ||
-      definition.cargo.slotCapacity <= 0
+      slotCapacity <= 0
     ) {
       throw new TypeError(
         "transport cargo capacity must use positive safe integers"
+      );
+    }
+
+    if (
+      slotCount >
+      Math.floor(
+        Number.MAX_SAFE_INTEGER /
+          slotCapacity
+      )
+    ) {
+      throw new RangeError(
+        "transport cargo total capacity must be a safe integer"
       );
     }
 
@@ -107,10 +148,8 @@ export class TransportRegistry {
       Object.freeze({
         id: definition.id,
         cargo: Object.freeze({
-          slotCount:
-            definition.cargo.slotCount,
-          slotCapacity:
-            definition.cargo.slotCapacity
+          slotCount,
+          slotCapacity
         }),
         mobilityProfile:
           definition.mobilityProfile
@@ -159,9 +198,8 @@ export class TransportRegistry {
 
     if (
       this.instances.has(input.id) ||
-      this.simulation.world.getEntity(
-        input.id
-      )
+      this.environment.world
+        .getEntity(input.id)
     ) {
       throw new Error(
         `transport id already exists in world: ${input.id}`
@@ -174,13 +212,25 @@ export class TransportRegistry {
       );
 
     if (
-      !this.simulation.navigation
+      !this.environment.navigation
         .navigationForDomain(
           input.domainId
         )
     ) {
       throw new Error(
         `transport domain is not navigable: ${input.domainId}`
+      );
+    }
+
+    const cargoInventoryId =
+      `entity:${input.id}:cargo`;
+
+    if (
+      this.environment.inventories
+        .get(cargoInventoryId)
+    ) {
+      throw new Error(
+        `transport cargo inventory already exists: ${cargoInventoryId}`
       );
     }
 
@@ -196,7 +246,7 @@ export class TransportRegistry {
       );
     }
 
-    this.simulation.world.addEntity({
+    this.environment.world.addEntity({
       id: input.id,
       kind: "transport",
       domainId: input.domainId,
@@ -211,7 +261,7 @@ export class TransportRegistry {
     });
 
     const cargo =
-      this.simulation
+      this.environment
         .inventoryBindings
         .createBoundInventory(
           {
@@ -220,8 +270,7 @@ export class TransportRegistry {
           },
           "cargo",
           {
-            id:
-              `entity:${input.id}:cargo`,
+            id: cargoInventoryId,
             slotCount:
               definition.cargo
                 .slotCount,
@@ -266,7 +315,7 @@ export class TransportRegistry {
     const transport =
       this.require(id);
     const inventory =
-      this.simulation.inventories
+      this.environment.inventories
         .get(
           transport.cargoInventoryId
         );
@@ -363,8 +412,8 @@ export class TransportRegistry {
     }
 
     return startJourney(
-      this.simulation.world,
-      this.simulation.navigation,
+      this.environment.world,
+      this.environment.navigation,
       transport.worldEntityId,
       destinationNodeId
     );
@@ -400,7 +449,7 @@ export class TransportRegistry {
       );
 
       const entity =
-        this.simulation.world
+        this.environment.world
           .getEntity(
             transport.worldEntityId
           );
@@ -411,6 +460,27 @@ export class TransportRegistry {
       ) {
         throw new Error(
           `transport world entity missing: ${transport.id}`
+        );
+      }
+
+      const binding =
+        this.environment
+          .inventoryBindings
+          .getBinding(
+            {
+              kind: "entity",
+              id: transport.worldEntityId
+            },
+            "cargo"
+          );
+
+      if (
+        !binding ||
+        binding.inventoryId !==
+          transport.cargoInventoryId
+      ) {
+        throw new Error(
+          `transport cargo binding mismatch: ${transport.id}`
         );
       }
 
@@ -490,7 +560,7 @@ export class TransportRegistry {
     entityId: string
   ) {
     const entity =
-      this.simulation.world
+      this.environment.world
         .getEntity(entityId);
 
     if (!entity) {
@@ -504,6 +574,12 @@ export class TransportRegistry {
     ) {
       throw new Error(
         "a transport cannot operate another transport"
+      );
+    }
+
+    if (entity.journey) {
+      throw new Error(
+        `transport operator is already travelling: ${entityId}`
       );
     }
 
@@ -543,7 +619,7 @@ export class TransportRegistry {
     }
 
     const transportEntity =
-      this.simulation.world
+      this.environment.world
         .getEntity(
           transport.worldEntityId
         );
@@ -554,20 +630,37 @@ export class TransportRegistry {
       );
     }
 
-    this.requireOperatorEntity(
-      operatorId
-    );
+    const operator =
+      this.requireOperatorEntity(
+        operatorId
+      );
 
-    this.simulation.world
-      .transferEntity(
-        operatorId,
-        {
-          domainId:
-            transportEntity.domainId ??
-            "default",
-          position:
-            transportEntity.position
-        }
+    const domainId =
+      transportEntity.domainId ??
+      "default";
+
+    if (
+      operator.domainId !==
+        domainId ||
+      operator.position.x !==
+        transportEntity.position.x ||
+      operator.position.y !==
+        transportEntity.position.y
+    ) {
+      this.environment.world
+        .transferEntity(
+          operatorId,
+          {
+            domainId,
+            position:
+              transportEntity.position
+          }
+        );
+    }
+
+    this.environment.places
+      .updateEntityOccupancy(
+        operator
       );
   }
 }
