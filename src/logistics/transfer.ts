@@ -276,18 +276,13 @@ export class PlaceTransferRegistry {
     const entity =
       environment.world
         .getEntity(entityId);
-    const endpoint =
-      this.endpoints.get(placeId);
 
-    if (
-      !entity ||
-      !endpoint
-    ) {
+    if (!entity) {
       return false;
     }
 
     if (
-      entity.kind !== "transport"
+      entity.kind === "person"
     ) {
       const location =
         this.places.locateEntity(
@@ -302,7 +297,11 @@ export class PlaceTransferRegistry {
       }
     }
 
+    const endpoint =
+      this.endpoints.get(placeId);
+
     if (
+      !endpoint ||
       entity.domainId !==
         endpoint.domainId
     ) {
