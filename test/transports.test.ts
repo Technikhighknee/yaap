@@ -627,7 +627,7 @@ test("iron moves from resource to mine to cart to foundry without entering the i
     simulation.places
       .getLayerDomain(
         SMALL_TOWN_IDS.foundry,
-        "workshop"
+        "ground"
       );
 
   assert.notEqual(
