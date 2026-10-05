@@ -20,6 +20,9 @@ import {
   InventoryRegistry
 } from "./inventory/registry.js";
 import {
+  PlaceTransferRegistry
+} from "./logistics/transfer.js";
+import {
   registerItemDefinitions
 } from "./items/definitions.js";
 import {
@@ -71,6 +74,9 @@ export function createSimulation() {
       inventories
     );
 
+  const transfers =
+    new PlaceTransferRegistry();
+
   const transports =
     new TransportRegistry({
       world,
@@ -92,6 +98,7 @@ export function createSimulation() {
     items,
     inventories,
     inventoryBindings,
+    transfers,
     transports
   };
 }
