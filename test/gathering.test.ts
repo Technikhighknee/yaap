@@ -2,6 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  mobilityProfile
+} from "world-core";
+
+import {
   createOwnerInventory
 } from "../src/inventory/owners.js";
 
@@ -299,4 +303,196 @@ test("mine is an embedded outdoor place and has no owned interior domain", () =>
     ),
     false
   );
+});
+
+
+test("multiple workers gather the same permanent resource node concurrently", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const endpoint =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.mine
+    );
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const ironNode =
+    simulation.resources.getNode(
+      SMALL_TOWN_RESOURCE_IDS.iron
+    );
+
+  assert.ok(endpoint);
+  assert.ok(storage);
+  assert.ok(ironNode);
+
+  const workerIds = Array.from(
+    { length: 6 },
+    (_, index) =>
+      `parallel-miner-${index + 1}`
+  );
+
+  for (
+    const workerId
+    of workerIds
+  ) {
+    simulation.world.addEntity({
+      id: workerId,
+      kind: "person",
+      domainId: endpoint.domainId,
+      position: endpoint.position,
+      mobility:
+        mobilityProfile(
+          "pedestrian"
+        )
+    });
+
+    createOwnerInventory(
+      simulation,
+      {
+        kind: "entity",
+        id: workerId
+      },
+      "carried",
+      {
+        slotCount: 1,
+        slotCapacity: 10
+      }
+    );
+  }
+
+  const runWave = () => {
+    const jobs = workerIds.map(
+      (workerEntityId) =>
+        simulation.gathering.start({
+          workerEntityId,
+          resourceNodeId:
+            SMALL_TOWN_RESOURCE_IDS.iron,
+          depositPlaceId:
+            SMALL_TOWN_IDS.mine
+        })
+    );
+
+    assert.equal(
+      jobs.every(
+        (job) =>
+          job.phase ===
+          "travelling-to-resource"
+      ),
+      true
+    );
+
+    const deltaSeconds = 0.25;
+    const maxTicks = 4_000;
+    let ticks = 0;
+    let maxSimultaneousWorkers = 0;
+
+    while (
+      jobs.some(
+        (job) =>
+          job.phase !== "complete" &&
+          job.phase !== "failed"
+      ) &&
+      ticks < maxTicks
+    ) {
+      stepSimulation(
+        simulation,
+        deltaSeconds
+      );
+
+      const workingNow =
+        jobs.filter(
+          (job) =>
+            job.phase === "working"
+        ).length;
+
+      maxSimultaneousWorkers =
+        Math.max(
+          maxSimultaneousWorkers,
+          workingNow
+        );
+
+      ticks += 1;
+    }
+
+    assert.ok(
+      ticks < maxTicks,
+      "all concurrent gathering jobs should complete"
+    );
+
+    for (const job of jobs) {
+      assert.equal(
+        job.phase,
+        "complete",
+        job.failureReason ??
+          undefined
+      );
+    }
+
+    assert.equal(
+      maxSimultaneousWorkers,
+      workerIds.length,
+      "all workers should be able to work on the same resource node at the same time"
+    );
+
+    for (
+      const workerId
+      of workerIds
+    ) {
+      const carried =
+        simulation.inventoryBindings
+          .getInventory(
+            {
+              kind: "entity",
+              id: workerId
+            },
+            "carried"
+          );
+
+      assert.ok(carried);
+      assert.equal(
+        carried.quantityOf("iron"),
+        0
+      );
+    }
+  };
+
+  runWave();
+
+  assert.equal(
+    storage.quantityOf("iron"),
+    30
+  );
+  assert.equal(
+    ironNode.resourceTypeId,
+    "iron",
+    "gathering must not deplete or change the resource node"
+  );
+
+  runWave();
+
+  assert.equal(
+    storage.quantityOf("iron"),
+    60
+  );
+  assert.equal(
+    ironNode.resourceTypeId,
+    "iron",
+    "the same permanent node must remain gatherable after repeated concurrent use"
+  );
+
+  simulation.resources
+    .assertInternalConsistency();
+  simulation.inventoryBindings
+    .assertInternalConsistency();
+  simulation.inventories
+    .assertInternalConsistency();
+  simulation.world
+    .assertInternalConsistency();
 });
