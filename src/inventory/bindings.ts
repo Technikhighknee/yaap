@@ -24,7 +24,8 @@ export type InventoryOwner =
 export type InventoryChannel =
   | "carried"
   | "storage"
-  | "sales";
+  | "sales"
+  | "cargo";
 
 export interface InventoryBinding {
   readonly owner: InventoryOwner;
