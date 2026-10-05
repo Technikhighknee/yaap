@@ -189,7 +189,7 @@ export function materializeMap(
 
     assertSamePosition(
       `resource node ${input.id}`,
-      navigationNode,
+      navigationNode.position,
       input.location.position
     );
 
