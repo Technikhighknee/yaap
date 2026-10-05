@@ -250,7 +250,7 @@ export class Inventory {
       }
 
       const slot =
-        this.slots[index];
+        this.slotsInternal[index];
 
       if (
         !slot ||
