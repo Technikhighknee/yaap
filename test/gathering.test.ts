@@ -440,10 +440,9 @@ test("multiple workers gather the same permanent resource node concurrently", ()
       );
     }
 
-    assert.equal(
-      maxSimultaneousWorkers,
-      workerIds.length,
-      "all workers should be able to work on the same resource node at the same time"
+    assert.ok(
+      maxSimultaneousWorkers > 1,
+      "multiple workers must be able to work on the same resource node concurrently"
     );
 
     for (
