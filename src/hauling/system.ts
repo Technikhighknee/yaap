@@ -384,6 +384,54 @@ export class HaulingSystem {
         continue;
       }
 
+      const target =
+        this.environment
+          .inventoryBindings
+          .getInventory(
+            {
+              kind: "place",
+              id: job.targetPlaceId
+            },
+            job.targetChannel
+          );
+      const cargo =
+        this.environment.transports
+          .cargo(
+            job.transportId
+          );
+
+      if (!target) {
+        this.fail(
+          job,
+          "target inventory disappeared"
+        );
+        continue;
+      }
+
+      if (
+        cargo.quantityOf(
+          job.itemId
+        ) < job.amount
+      ) {
+        this.fail(
+          job,
+          "hauling cargo changed during transit"
+        );
+        continue;
+      }
+
+      if (
+        target.remainingCapacity(
+          job.itemId
+        ) < job.amount
+      ) {
+        this.fail(
+          job,
+          "target no longer has capacity for complete hauling load"
+        );
+        continue;
+      }
+
       const delivered =
         this.environment.transfers
           .transferEntityToPlace(
@@ -396,20 +444,19 @@ export class HaulingSystem {
             job.amount
           );
 
-      job.deliveredAmount =
-        delivered.moved;
-
       if (
         delivered.moved !==
         job.amount
       ) {
         this.fail(
           job,
-          "target could not accept complete hauling load"
+          "hauling unload changed after validation"
         );
         continue;
       }
 
+      job.deliveredAmount =
+        delivered.moved;
       job.phase = "complete";
     }
   }
