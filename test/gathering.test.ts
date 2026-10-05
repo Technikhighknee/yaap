@@ -50,7 +50,7 @@ test("miner walks to iron, works, returns, and deposits into exterior mine stora
   assert.ok(carried);
   assert.ok(ironNode);
   assert.equal(
-    storage.quantityOf("iron"),
+    storage.quantityOf("iron-ore"),
     0
   );
 
@@ -113,11 +113,11 @@ test("miner walks to iron, works, returns, and deposits into exterior mine stora
   assert.ok(seen.has("returning"));
 
   assert.equal(
-    carried.quantityOf("iron"),
+    carried.quantityOf("iron-ore"),
     0
   );
   assert.equal(
-    storage.quantityOf("iron"),
+    storage.quantityOf("iron-ore"),
     5
   );
 
@@ -150,7 +150,7 @@ test("miner walks to iron, works, returns, and deposits into exterior mine stora
       undefined
   );
   assert.equal(
-    storage.quantityOf("iron"),
+    storage.quantityOf("iron-ore"),
     10
   );
 
@@ -251,7 +251,7 @@ test("interior building inventory is transferable from its exterior world endpoi
         slotCapacity: 10
       }
     );
-  carried.add("iron", 7);
+  carried.add("iron-ore", 7);
 
   const result =
     simulation.transfers
@@ -265,13 +265,13 @@ test("interior building inventory is transferable from its exterior world endpoi
         "carried",
         SMALL_TOWN_IDS.foundry,
         "storage",
-        "iron",
+        "iron-ore",
         7
       );
 
   assert.equal(result.moved, 7);
   assert.equal(
-    carried.quantityOf("iron"),
+    carried.quantityOf("iron-ore"),
     0
   );
 
@@ -287,7 +287,7 @@ test("interior building inventory is transferable from its exterior world endpoi
   assert.ok(foundryStorage);
   assert.equal(
     foundryStorage.quantityOf(
-      "iron"
+      "iron-ore"
     ),
     7
   );
@@ -491,7 +491,7 @@ test("multiple workers gather the same permanent resource node concurrently", ()
 
       assert.ok(carried);
       assert.equal(
-        carried.quantityOf("iron"),
+        carried.quantityOf("iron-ore"),
         0
       );
     }
@@ -500,7 +500,7 @@ test("multiple workers gather the same permanent resource node concurrently", ()
   runWave();
 
   assert.equal(
-    storage.quantityOf("iron"),
+    storage.quantityOf("iron-ore"),
     30
   );
   assert.equal(
@@ -512,7 +512,7 @@ test("multiple workers gather the same permanent resource node concurrently", ()
   runWave();
 
   assert.equal(
-    storage.quantityOf("iron"),
+    storage.quantityOf("iron-ore"),
     60
   );
   assert.equal(
@@ -563,24 +563,28 @@ test("mine gathers multiple permanent ore resources into shared storage", () => 
       workerId: "miner-01",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.iron,
-      itemId: "iron"
+      resourceTypeId: "iron",
+      itemId: "iron-ore"
     },
     {
       workerId: "silver-miner",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.silver,
-      itemId: "silver"
+      resourceTypeId: "silver",
+      itemId: "silver-ore"
     },
     {
       workerId: "gold-miner",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.gold,
-      itemId: "gold"
+      resourceTypeId: "gold",
+      itemId: "gold-ore"
     },
     {
       workerId: "gem-miner",
       resourceNodeId:
         SMALL_TOWN_RESOURCE_IDS.gemstone,
+      resourceTypeId: "gemstone",
       itemId: "gemstone"
     }
   ] as const;
@@ -678,7 +682,7 @@ test("mine gathers multiple permanent ore resources into shared storage", () => 
     assert.ok(node);
     assert.equal(
       node.resourceTypeId,
-      assignment.itemId,
+      assignment.resourceTypeId,
       "gathering must not mutate permanent ore nodes"
     );
   }

@@ -9,19 +9,19 @@ import {
 export const GATHERING_OUTPUTS = [
   {
     resourceTypeId: "iron",
-    itemId: "iron",
+    itemId: "iron-ore",
     amount: 5,
     workSeconds: 8
   },
   {
     resourceTypeId: "silver",
-    itemId: "silver",
+    itemId: "silver-ore",
     amount: 5,
     workSeconds: 8
   },
   {
     resourceTypeId: "gold",
-    itemId: "gold",
+    itemId: "gold-ore",
     amount: 5,
     workSeconds: 8
   },
