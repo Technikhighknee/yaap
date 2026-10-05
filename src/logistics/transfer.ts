@@ -144,7 +144,7 @@ export class PlaceTransferRegistry {
   ) {
     if (
       !this.canEntityTransfer(
-        simulation,
+        environment,
         entityId,
         placeId
       )
