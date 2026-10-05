@@ -1,10 +1,17 @@
 import type {
+  World
+} from "world-core";
+
+import type {
+  InventoryBindingRegistry,
   InventoryChannel
 } from "../inventory/bindings.js";
 
-import type {
-  Simulation
-} from "../simulation.js";
+export interface TransferEnvironment {
+  readonly world: World;
+  readonly inventoryBindings:
+    InventoryBindingRegistry;
+}
 
 export interface PlaceTransferEndpoint {
   readonly placeId: string;
@@ -95,12 +102,12 @@ export class PlaceTransferRegistry {
   }
 
   canEntityTransfer(
-    simulation: Simulation,
+    environment: TransferEnvironment,
     entityId: string,
     placeId: string
   ): boolean {
     const entity =
-      simulation.world
+      environment.world
         .getEntity(entityId);
     const endpoint =
       this.endpoints.get(placeId);
@@ -125,7 +132,7 @@ export class PlaceTransferRegistry {
   }
 
   transferEntityToPlace(
-    simulation: Simulation,
+    environment: TransferEnvironment,
     entityId: string,
     entityChannel:
       InventoryChannel,
@@ -148,7 +155,7 @@ export class PlaceTransferRegistry {
     }
 
     const source =
-      simulation.inventoryBindings
+      environment.inventoryBindings
         .getInventory(
           {
             kind: "entity",
@@ -157,7 +164,7 @@ export class PlaceTransferRegistry {
           entityChannel
         );
     const target =
-      simulation.inventoryBindings
+      environment.inventoryBindings
         .getInventory(
           {
             kind: "place",
