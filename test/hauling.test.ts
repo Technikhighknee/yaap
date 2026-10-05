@@ -83,8 +83,8 @@ test("hauling start validation does not mutate inventories", () => {
       cart.id
     );
 
-  mineStorage.add("iron", 5);
-  foundryStorage.add("iron", 80);
+  mineStorage.add("iron-ore", 5);
+  foundryStorage.add("iron-ore", 80);
 
   assert.throws(
     () =>
@@ -98,7 +98,7 @@ test("hauling start validation does not mutate inventories", () => {
         targetChannel: "storage",
         manifest: [
           {
-            itemId: "iron",
+            itemId: "iron-ore",
             amount: 5
           }
         ]
@@ -107,11 +107,11 @@ test("hauling start validation does not mutate inventories", () => {
   );
 
   assert.equal(
-    mineStorage.quantityOf("iron"),
+    mineStorage.quantityOf("iron-ore"),
     5
   );
   assert.equal(
-    cargo.quantityOf("iron"),
+    cargo.quantityOf("iron-ore"),
     0
   );
   assert.equal(
@@ -167,7 +167,7 @@ test("hauling keeps the full cargo when target capacity disappears in transit", 
       cart.id
     );
 
-  mineStorage.add("iron", 5);
+  mineStorage.add("iron-ore", 5);
 
   const job =
     simulation.hauling.start({
@@ -180,22 +180,22 @@ test("hauling keeps the full cargo when target capacity disappears in transit", 
       targetChannel: "storage",
       manifest: [
         {
-          itemId: "iron",
+          itemId: "iron-ore",
           amount: 5
         }
       ]
     });
 
   assert.equal(
-    mineStorage.quantityOf("iron"),
+    mineStorage.quantityOf("iron-ore"),
     0
   );
   assert.equal(
-    cargo.quantityOf("iron"),
+    cargo.quantityOf("iron-ore"),
     5
   );
 
-  foundryStorage.add("iron", 80);
+  foundryStorage.add("iron-ore", 80);
 
   const deltaSeconds = 0.25;
   const maxTicks = 4_000;
@@ -225,13 +225,13 @@ test("hauling keeps the full cargo when target capacity disappears in transit", 
     /no longer has capacity/
   );
   assert.equal(
-    cargo.quantityOf("iron"),
+    cargo.quantityOf("iron-ore"),
     5,
     "failed unloading must leave the complete load on the transport"
   );
   assert.equal(
     foundryStorage.quantityOf(
-      "iron"
+      "iron-ore"
     ),
     80
   );
@@ -299,9 +299,9 @@ test("hauling moves a mixed manifest in one trip", () => {
       cart.id
     );
 
-  mineStorage.add("iron", 5);
-  mineStorage.add("silver", 5);
-  mineStorage.add("gold", 5);
+  mineStorage.add("iron-ore", 5);
+  mineStorage.add("silver-ore", 5);
+  mineStorage.add("gold-ore", 5);
 
   const job =
     simulation.hauling.start({
@@ -314,30 +314,30 @@ test("hauling moves a mixed manifest in one trip", () => {
       targetChannel: "storage",
       manifest: [
         {
-          itemId: "iron",
+          itemId: "iron-ore",
           amount: 5
         },
         {
-          itemId: "silver",
+          itemId: "silver-ore",
           amount: 5
         },
         {
-          itemId: "gold",
+          itemId: "gold-ore",
           amount: 5
         }
       ]
     });
 
   assert.equal(
-    cargo.quantityOf("iron"),
+    cargo.quantityOf("iron-ore"),
     5
   );
   assert.equal(
-    cargo.quantityOf("silver"),
+    cargo.quantityOf("silver-ore"),
     5
   );
   assert.equal(
-    cargo.quantityOf("gold"),
+    cargo.quantityOf("gold-ore"),
     5
   );
 
@@ -369,7 +369,7 @@ test("hauling moves a mixed manifest in one trip", () => {
 
   for (
     const itemId
-    of ["iron", "silver", "gold"]
+    of ["iron-ore", "silver-ore", "gold-ore"]
   ) {
     assert.equal(
       cargo.quantityOf(itemId),
@@ -406,9 +406,9 @@ test("hauling rejects a manifest that cannot fit across cargo slots without muta
       cart.id
     );
 
-  mineStorage.add("iron", 1);
-  mineStorage.add("silver", 1);
-  mineStorage.add("gold", 1);
+  mineStorage.add("iron-ore", 1);
+  mineStorage.add("silver-ore", 1);
+  mineStorage.add("gold-ore", 1);
 
   assert.throws(
     () =>
@@ -422,15 +422,15 @@ test("hauling rejects a manifest that cannot fit across cargo slots without muta
         targetChannel: "storage",
         manifest: [
           {
-            itemId: "iron",
+            itemId: "iron-ore",
             amount: 1
           },
           {
-            itemId: "silver",
+            itemId: "silver-ore",
             amount: 1
           },
           {
-            itemId: "gold",
+            itemId: "gold-ore",
             amount: 1
           }
         ]
@@ -446,15 +446,15 @@ test("hauling rejects a manifest that cannot fit across cargo slots without muta
     true
   );
   assert.equal(
-    mineStorage.quantityOf("iron"),
+    mineStorage.quantityOf("iron-ore"),
     1
   );
   assert.equal(
-    mineStorage.quantityOf("silver"),
+    mineStorage.quantityOf("silver-ore"),
     1
   );
   assert.equal(
-    mineStorage.quantityOf("gold"),
+    mineStorage.quantityOf("gold-ore"),
     1
   );
 });
