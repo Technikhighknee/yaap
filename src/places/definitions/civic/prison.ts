@@ -26,6 +26,7 @@ const blueprint = {
         nodes: [
           { id: "front-door", x: 6, y: 0.5 },
           { id: "cell-block-south", x: 6, y: 2.5 },
+          { id: "guard-post", x: 6, y: 1.5 },
           { id: "cell-block-north", x: 6, y: 7.5 },
           { id: "stairs-ground", x: 6, y: 9.25 },
 
@@ -51,6 +52,13 @@ const blueprint = {
             from: "front-door",
             to: "cell-block-south",
             width: 1.5,
+            surface: "floor"
+          },
+          {
+            id: "cell-block-to-guard-post",
+            from: "cell-block-south",
+            to: "guard-post",
+            width: 1.2,
             surface: "floor"
           },
           {
@@ -165,7 +173,8 @@ const blueprint = {
       navigation: {
         nodes: [
           { id: "stairs-cellar", x: 6, y: 9.25 },
-          { id: "torture-chamber-center", x: 6, y: 5 }
+          { id: "torture-chamber-center", x: 6, y: 5 },
+          { id: "torture-table", x: 6, y: 3.5 }
         ],
         roads: [
           {
@@ -173,6 +182,13 @@ const blueprint = {
             from: "stairs-cellar",
             to: "torture-chamber-center",
             width: 1.5,
+            surface: "floor"
+          },
+          {
+            id: "torture-chamber-to-table",
+            from: "torture-chamber-center",
+            to: "torture-table",
+            width: 1.2,
             surface: "floor"
           }
         ]
@@ -431,6 +447,15 @@ const blueprint = {
       nodeId: "cell-block-north",
       tags: ["cell-block"]
     },
+    {
+      id: "guard-post",
+      kind: "guard-post",
+      layerId: "ground",
+      spaceId: "cell-block",
+      position: { x: 6, y: 1.5 },
+      nodeId: "guard-post",
+      tags: ["guard", "security"]
+    },
 
     {
       id: "cell-a-center",
@@ -472,6 +497,15 @@ const blueprint = {
       position: { x: 6, y: 5 },
       nodeId: "torture-chamber-center",
       tags: ["torture"]
+    },
+    {
+      id: "torture-table",
+      kind: "torture-table",
+      layerId: "cellar",
+      spaceId: "torture-chamber",
+      position: { x: 6, y: 3.5 },
+      nodeId: "torture-table",
+      tags: ["torture", "workstation"]
     }
   ]
 } satisfies PlaceDefinitionInput;
