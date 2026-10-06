@@ -8,10 +8,28 @@ import {
 
 export const PRODUCTION_RECIPES = [
   {
-    id: "burn-charcoal",
+    id: "burn-pine-charcoal",
     inputs: [
       {
         itemId: "pinewood",
+        amount: 5
+      }
+    ],
+    outputs: [
+      {
+        itemId: "charcoal",
+        amount: 2
+      }
+    ],
+    workSeconds: 16,
+    workstationAnchorId:
+      "charcoal-kiln"
+  },
+  {
+    id: "burn-oak-charcoal",
+    inputs: [
+      {
+        itemId: "oakwood",
         amount: 5
       }
     ],
