@@ -10,11 +10,12 @@ export interface ProductionRecipeDefinition {
   readonly outputs:
     readonly ProductionQuantity[];
   readonly workSeconds: number;
-  readonly workstationAnchorId:
+  readonly workstationTag:
     string;
 }
 
 export type ProductionPhase =
+  | "waiting-for-workstation"
   | "travelling-to-workstation"
   | "working"
   | "awaiting-output"
@@ -27,6 +28,7 @@ export interface ProductionJob {
   readonly placeId: string;
   readonly recipe:
     Readonly<ProductionRecipeDefinition>;
+  workstationAnchorId: string | null;
   phase: ProductionPhase;
   workRemainingSeconds: number;
   reservedInputs:
