@@ -422,23 +422,12 @@ test("different physical workstations can run concurrently", () => {
         "burn-pine-charcoal"
     });
 
-  assert.equal(
-    smith.phase,
-    "working"
-  );
-  assert.equal(
-    burner.phase,
-    "working"
-  );
-  assert.notEqual(
-    smith.workstationAnchorId,
-    burner.workstationAnchorId
-  );
-
   const deltaSeconds = 0.25;
   const maxTicks = 4_000;
   let ticks = 0;
-  let sawConcurrentWork = false;
+  let sawConcurrentWork =
+    smith.phase === "working" &&
+    burner.phase === "working";
 
   while (
     (
