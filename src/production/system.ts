@@ -1,4 +1,5 @@
 import {
+  planTravel,
   startTravel
 } from "place-core";
 
@@ -437,6 +438,9 @@ export class ProductionSystem {
   readonly jobs =
     new Map<string, ProductionJob>();
 
+  private readonly workstationClaims =
+    new Map<string, string>();
+
   constructor(
     private readonly environment:
       ProductionEnvironment
@@ -448,7 +452,7 @@ export class ProductionSystem {
   ): void {
     if (
       definition.id.length === 0 ||
-      definition.workstationAnchorId
+      definition.workstationTag
         .length === 0 ||
       !Number.isFinite(
         definition.workSeconds
@@ -491,8 +495,8 @@ export class ProductionSystem {
         outputs,
         workSeconds:
           definition.workSeconds,
-        workstationAnchorId:
-          definition.workstationAnchorId
+        workstationTag:
+          definition.workstationTag
       })
     );
   }
@@ -567,15 +571,16 @@ export class ProductionSystem {
       );
     }
 
-    const workstation =
+    const workstations =
       this.environment.places
-        .resolveAnchor(
-          input.placeId,
-          recipe.workstationAnchorId
-        );
-    if (!workstation) {
+        .findAnchors({
+          placeId: input.placeId,
+          tag: recipe.workstationTag,
+          enabledOnly: true
+        });
+    if (workstations.length === 0) {
       throw new Error(
-        `production workstation is unavailable: ${input.placeId}:${recipe.workstationAnchorId}`
+        `production workstation is unavailable: ${input.placeId}:${recipe.workstationTag}`
       );
     }
 
@@ -617,48 +622,15 @@ export class ProductionSystem {
       recipe.inputs
     );
 
-    let travel;
-
-    try {
-      travel =
-        startTravel(
-          this.environment.places,
-          input.workerEntityId,
-          {
-            placeId:
-              input.placeId,
-            anchorId:
-              recipe.workstationAnchorId
-          }
-        );
-    } catch (error) {
-      addManifest(
-        storage,
-        recipe.inputs
-      );
-      throw error;
-    }
-
-    if (!travel) {
-      addManifest(
-        storage,
-        recipe.inputs
-      );
-      throw new Error(
-        `cannot route production worker to workstation: ${input.workerEntityId}`
-      );
-    }
-
     const job: ProductionJob = {
       workerEntityId:
         input.workerEntityId,
       placeId:
         input.placeId,
       recipe,
+      workstationAnchorId: null,
       phase:
-        travel.status === "complete"
-          ? "working"
-          : "travelling-to-workstation",
+        "waiting-for-workstation",
       workRemainingSeconds:
         recipe.workSeconds,
       reservedInputs:
@@ -670,6 +642,21 @@ export class ProductionSystem {
       input.workerEntityId,
       job
     );
+
+    try {
+      this.tryAcquireWorkstation(
+        job
+      );
+    } catch (error) {
+      this.jobs.delete(
+        input.workerEntityId
+      );
+      addManifest(
+        storage,
+        recipe.inputs
+      );
+      throw error;
+    }
 
     return job;
   }
@@ -729,6 +716,33 @@ export class ProductionSystem {
           "worker disappeared"
         );
         continue;
+      }
+
+      if (
+        job.phase ===
+        "waiting-for-workstation"
+      ) {
+        if (
+          worker.journey ||
+          this.environment.places
+            .activeTravels.has(
+              job.workerEntityId
+            )
+        ) {
+          this.failAndRefund(
+            job,
+            "worker started travelling while waiting for production workstation"
+          );
+          continue;
+        }
+
+        if (
+          !this.tryAcquireWorkstation(
+            job
+          )
+        ) {
+          continue;
+        }
       }
 
       if (
@@ -793,6 +807,10 @@ export class ProductionSystem {
         continue;
       }
 
+      this.releaseWorkstation(
+        job
+      );
+
       job.reservedInputs =
         Object.freeze([]);
 
@@ -830,6 +848,184 @@ export class ProductionSystem {
     return storage;
   }
 
+  private workstationClaimKey(
+    placeId: string,
+    anchorId: string
+  ): string {
+    return JSON.stringify([
+      placeId,
+      anchorId
+    ]);
+  }
+
+  private tryAcquireWorkstation(
+    job: ProductionJob
+  ): boolean {
+    if (
+      job.workstationAnchorId !== null
+    ) {
+      return true;
+    }
+
+    const availableWorkstations =
+      this.environment.places
+        .findAnchors({
+          placeId: job.placeId,
+          tag:
+            job.recipe.workstationTag,
+          enabledOnly: true
+        })
+        .filter(
+          (anchor) =>
+            !this.workstationClaims.has(
+              this.workstationClaimKey(
+                job.placeId,
+                anchor.id
+              )
+            )
+        );
+
+    if (
+      availableWorkstations.length === 0
+    ) {
+      return false;
+    }
+
+    const plan =
+      planTravel(
+        this.environment.places,
+        job.workerEntityId,
+        {
+          kind: "nearest",
+          tag:
+            job.recipe.workstationTag,
+          placeId:
+            job.placeId
+        },
+        {
+          anchorPredicate:
+            (anchor) =>
+              !this.workstationClaims.has(
+                this.workstationClaimKey(
+                  job.placeId,
+                  anchor.id
+                )
+              )
+        }
+      );
+
+    if (!plan) {
+      return false;
+    }
+
+    const anchorId =
+      plan.resolvedTarget.anchorId;
+
+    if (!anchorId) {
+      throw new Error(
+        "production plan resolved without a workstation anchor"
+      );
+    }
+
+    const claimKey =
+      this.workstationClaimKey(
+        job.placeId,
+        anchorId
+      );
+
+    if (
+      this.workstationClaims.has(
+        claimKey
+      )
+    ) {
+      return false;
+    }
+
+    this.workstationClaims.set(
+      claimKey,
+      job.workerEntityId
+    );
+
+    let travel;
+
+    try {
+      travel =
+        startTravel(
+          this.environment.places,
+          job.workerEntityId,
+          {
+            placeId:
+              job.placeId,
+            anchorId
+          }
+        );
+    } catch (error) {
+      this.workstationClaims.delete(
+        claimKey
+      );
+      throw error;
+    }
+
+    if (
+      !travel ||
+      (
+        travel.status !== "active" &&
+        travel.status !== "complete"
+      )
+    ) {
+      this.workstationClaims.delete(
+        claimKey
+      );
+      return false;
+    }
+
+    job.workstationAnchorId =
+      anchorId;
+    job.phase =
+      travel.status === "complete"
+        ? "working"
+        : "travelling-to-workstation";
+
+    return true;
+  }
+
+  private releaseWorkstation(
+    job: ProductionJob
+  ): void {
+    if (
+      job.workstationAnchorId === null
+    ) {
+      return;
+    }
+
+    const claimKey =
+      this.workstationClaimKey(
+        job.placeId,
+        job.workstationAnchorId
+      );
+    const owner =
+      this.workstationClaims.get(
+        claimKey
+      );
+
+    if (owner === undefined) {
+      return;
+    }
+
+    if (
+      owner !==
+      job.workerEntityId
+    ) {
+      throw new Error(
+        `production workstation claim owner mismatch: ${job.placeId}:${job.workstationAnchorId}`
+      );
+    }
+
+    this.workstationClaims.delete(
+      claimKey
+    );
+  }
+
   private workerAtWorkstation(
     job: ProductionJob,
     worker: {
@@ -840,12 +1036,17 @@ export class ProductionSystem {
       };
     }
   ): boolean {
+    if (
+      job.workstationAnchorId === null
+    ) {
+      return false;
+    }
+
     const workstation =
       this.environment.places
         .resolveAnchor(
           job.placeId,
-          job.recipe
-            .workstationAnchorId
+          job.workstationAnchorId
         );
 
     if (
@@ -909,6 +1110,10 @@ export class ProductionSystem {
     job: ProductionJob,
     reason: string
   ): void {
+    this.releaseWorkstation(
+      job
+    );
+
     job.failureReason = reason;
 
     if (
