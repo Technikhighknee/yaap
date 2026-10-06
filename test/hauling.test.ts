@@ -129,7 +129,7 @@ test("hauling start validation does not mutate inventories", () => {
   );
 });
 
-test("hauling fails cleanly and keeps cargo when the transport loses its operator", () => {
+test("hauling fails cleanly and keeps cargo when its operator entity disappears", () => {
   const simulation =
     createSmallTownScenario();
   const mineStorage =
@@ -190,8 +190,18 @@ test("hauling fails cleanly and keeps cargo when the transport loses its operato
       ?.journey
   );
 
-  simulation.transports
-    .clearOperator(cart.id);
+  assert.equal(
+    simulation.world.removeEntity(
+      "hauler"
+    ),
+    true
+  );
+  assert.equal(
+    simulation.transports
+      .get(cart.id)
+      ?.operatorEntityId,
+    null
+  );
 
   const stoppedPosition = {
     ...simulation.world
