@@ -783,7 +783,7 @@ test("blocked production output keeps the physical workstation reserved", () => 
   );
 });
 
-test("production refunds reserved inputs when a worker leaves before finishing", () => {
+test("failed production releases the workstation to a waiting worker", () => {
   const simulation =
     createSmallTownScenario();
   const storage =
@@ -804,8 +804,8 @@ test("production refunds reserved inputs when a worker leaves before finishing",
   assert.ok(storage);
   assert.ok(forge);
 
-  storage.add("iron-ore", 5);
-  storage.add("charcoal", 2);
+  storage.add("iron-ore", 10);
+  storage.add("charcoal", 4);
 
   simulation.world.addEntity({
     id: "leaving-smith",
@@ -817,8 +817,12 @@ test("production refunds reserved inputs when a worker leaves before finishing",
         "pedestrian"
       )
   });
+  addFoundryWorker(
+    simulation,
+    "waiting-after-failure"
+  );
 
-  const job =
+  const leavingJob =
     simulation.production.start({
       workerEntityId:
         "leaving-smith",
@@ -826,14 +830,32 @@ test("production refunds reserved inputs when a worker leaves before finishing",
         SMALL_TOWN_IDS.foundry,
       recipeId: "smelt-iron"
     });
+  const waitingJob =
+    simulation.production.start({
+      workerEntityId:
+        "waiting-after-failure",
+      placeId:
+        SMALL_TOWN_IDS.foundry,
+      recipeId: "smelt-iron"
+    });
 
   assert.equal(
-    job.phase,
+    leavingJob.phase,
     "working"
+  );
+  assert.equal(
+    waitingJob.workstationAnchorId,
+    null
   );
   assert.equal(
     storage.quantityOf(
       "iron-ore"
+    ),
+    0
+  );
+  assert.equal(
+    storage.quantityOf(
+      "charcoal"
     ),
     0
   );
@@ -852,12 +874,21 @@ test("production refunds reserved inputs when a worker leaves before finishing",
   );
 
   assert.equal(
-    job.phase,
+    leavingJob.phase,
     "failed"
   );
   assert.match(
-    job.failureReason ?? "",
+    leavingJob.failureReason ?? "",
     /left production workstation/
+  );
+  assert.equal(
+    leavingJob.reservedInputs.length,
+    0
+  );
+  assert.equal(
+    waitingJob.workstationAnchorId,
+    "forge",
+    "the waiting worker should claim the forge in the same production step"
   );
   assert.equal(
     storage.quantityOf(
@@ -872,11 +903,58 @@ test("production refunds reserved inputs when a worker leaves before finishing",
     2
   );
   assert.equal(
-    storage.quantityOf("iron"),
-    0
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
+    1
+  );
+
+  const deltaSeconds = 0.25;
+  const maxTicks = 4_000;
+  let ticks = 0;
+
+  while (
+    waitingJob.phase !== "complete" &&
+    waitingJob.phase !== "failed" &&
+    ticks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < maxTicks,
+    "the waiting worker should finish after the failed worker releases the forge"
   );
   assert.equal(
-    job.reservedInputs.length,
+    waitingJob.phase,
+    "complete",
+    waitingJob.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("iron"),
+    5
+  );
+  assert.equal(
+    storage.quantityOf(
+      "iron-ore"
+    ),
+    5
+  );
+  assert.equal(
+    storage.quantityOf(
+      "charcoal"
+    ),
+    2
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
     0
   );
 });
