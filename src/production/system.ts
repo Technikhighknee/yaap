@@ -1,4 +1,5 @@
 import {
+  planTravel,
   startTravel
 } from "place-core";
 
@@ -866,8 +867,32 @@ export class ProductionSystem {
       return true;
     }
 
-    const travel =
-      startTravel(
+    const availableWorkstations =
+      this.environment.places
+        .findAnchors({
+          placeId: job.placeId,
+          tag:
+            job.recipe.workstationTag,
+          enabledOnly: true
+        })
+        .filter(
+          (anchor) =>
+            !this.workstationClaims.has(
+              this.workstationClaimKey(
+                job.placeId,
+                anchor.id
+              )
+            )
+        );
+
+    if (
+      availableWorkstations.length === 0
+    ) {
+      return false;
+    }
+
+    const plan =
+      planTravel(
         this.environment.places,
         job.workerEntityId,
         {
@@ -889,23 +914,16 @@ export class ProductionSystem {
         }
       );
 
-    if (
-      !travel ||
-      (
-        travel.status !== "active" &&
-        travel.status !== "complete"
-      )
-    ) {
+    if (!plan) {
       return false;
     }
 
     const anchorId =
-      travel.plan.resolvedTarget
-        .anchorId;
+      plan.resolvedTarget.anchorId;
 
     if (!anchorId) {
       throw new Error(
-        "production travel resolved without a workstation anchor"
+        "production plan resolved without a workstation anchor"
       );
     }
 
@@ -920,15 +938,46 @@ export class ProductionSystem {
         claimKey
       )
     ) {
-      throw new Error(
-        `production workstation became claimed during assignment: ${job.placeId}:${anchorId}`
-      );
+      return false;
     }
 
     this.workstationClaims.set(
       claimKey,
       job.workerEntityId
     );
+
+    let travel;
+
+    try {
+      travel =
+        startTravel(
+          this.environment.places,
+          job.workerEntityId,
+          {
+            placeId:
+              job.placeId,
+            anchorId
+          }
+        );
+    } catch (error) {
+      this.workstationClaims.delete(
+        claimKey
+      );
+      throw error;
+    }
+
+    if (
+      !travel ||
+      (
+        travel.status !== "active" &&
+        travel.status !== "complete"
+      )
+    ) {
+      this.workstationClaims.delete(
+        claimKey
+      );
+      return false;
+    }
 
     job.workstationAnchorId =
       anchorId;
