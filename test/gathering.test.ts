@@ -435,6 +435,108 @@ test("gathering can start with a full deposit if capacity is available by return
   );
 });
 
+test("gathering stops if an assignable node changes resource type during work", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+  const ironNode =
+    simulation.resources.getNode(
+      SMALL_TOWN_RESOURCE_IDS.iron
+    );
+
+  assert.ok(storage);
+  assert.ok(carried);
+  assert.ok(ironNode);
+
+  simulation.resources.createNode({
+    id: "assignable-test-node",
+    definitionId: "field",
+    resourceTypeId: "iron",
+    location: {
+      domainId:
+        ironNode.location.domainId,
+      position:
+        ironNode.location.position,
+      navigationNodeId:
+        ironNode.location
+          .navigationNodeId
+    }
+  });
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        "assignable-test-node",
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  let ticks = 0;
+  while (
+    job.phase !== "working" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.equal(
+    job.phase,
+    "working",
+    job.failureReason ??
+      undefined
+  );
+
+  simulation.resources
+    .setNodeResourceType(
+      "assignable-test-node",
+      "silver"
+    );
+
+  simulation.gathering.step(
+    0.25
+  );
+
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.failureReason,
+    "worker left resource"
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    0
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    0
+  );
+});
+
 test("gathering stops if the worker leaves the resource while working", () => {
   const simulation =
     createSmallTownScenario();
