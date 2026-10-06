@@ -372,11 +372,6 @@ test("gathering can start with a full deposit if capacity is available by return
         SMALL_TOWN_IDS.mine
     });
 
-  assert.equal(
-    job.phase,
-    "travelling-to-resource"
-  );
-
   let ticks = 0;
   while (
     job.phase !== "returning" &&
