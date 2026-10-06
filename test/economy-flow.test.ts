@@ -507,6 +507,8 @@ test("iron resource becomes processed iron through gathering, hauling, and inter
     true
   );
 
+  simulation.production
+    .assertInternalConsistency();
   simulation.resources
     .assertInternalConsistency();
   simulation.transports
