@@ -311,7 +311,16 @@ export class GatheringSystem {
           if (
             !node ||
             node.resourceTypeId !==
-              job.output.resourceTypeId ||
+              job.output.resourceTypeId
+          ) {
+            this.fail(
+              job,
+              "resource changed before arrival"
+            );
+            continue;
+          }
+
+          if (
             worker.domainId !==
               node.location.domainId ||
             worker.position.x !==
@@ -341,10 +350,19 @@ export class GatheringSystem {
             );
 
         if (
-          worker.journey ||
           !node ||
           node.resourceTypeId !==
-            job.output.resourceTypeId ||
+            job.output.resourceTypeId
+        ) {
+          this.fail(
+            job,
+            "resource changed during gathering"
+          );
+          continue;
+        }
+
+        if (
+          worker.journey ||
           worker.domainId !==
             node.location.domainId ||
           worker.position.x !==
