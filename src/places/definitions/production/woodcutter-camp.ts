@@ -70,6 +70,22 @@ const blueprint = {
         "transfer",
         "workplace"
       ]
+    },
+    {
+      id: "charcoal-kiln",
+      kind: "charcoal-kiln",
+      layerId: "site",
+      spaceId: "camp-yard",
+      position: {
+        x: 8,
+        y: 4
+      },
+      tags: [
+        "charcoal",
+        "production",
+        "workstation",
+        "outdoor"
+      ]
     }
   ]
 } satisfies PlaceDefinitionInput;
