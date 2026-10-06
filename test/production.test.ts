@@ -352,14 +352,21 @@ test("different physical workstations can run concurrently", () => {
         },
         "storage"
       );
-  const woodEndpoint =
-    simulation.transfers.get(
-      SMALL_TOWN_IDS.woodcutterCamp
+  const forge =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.foundry,
+      "forge"
+    );
+  const kiln =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.woodcutterCamp,
+      "charcoal-kiln"
     );
 
   assert.ok(foundryStorage);
   assert.ok(woodStorage);
-  assert.ok(woodEndpoint);
+  assert.ok(forge);
+  assert.ok(kiln);
 
   foundryStorage.add(
     "iron-ore",
@@ -374,18 +381,22 @@ test("different physical workstations can run concurrently", () => {
     5
   );
 
-  addFoundryWorker(
-    simulation,
-    "parallel-smith"
-  );
+  simulation.world.addEntity({
+    id: "parallel-smith",
+    kind: "person",
+    domainId: forge.domainId,
+    position: forge.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
 
   simulation.world.addEntity({
     id: "parallel-burner",
     kind: "person",
-    domainId:
-      woodEndpoint.domainId,
-    position:
-      woodEndpoint.position,
+    domainId: kiln.domainId,
+    position: kiln.position,
     mobility:
       mobilityProfile(
         "pedestrian"
@@ -410,6 +421,19 @@ test("different physical workstations can run concurrently", () => {
       recipeId:
         "burn-pine-charcoal"
     });
+
+  assert.equal(
+    smith.phase,
+    "working"
+  );
+  assert.equal(
+    burner.phase,
+    "working"
+  );
+  assert.notEqual(
+    smith.workstationAnchorId,
+    burner.workstationAnchorId
+  );
 
   const deltaSeconds = 0.25;
   const maxTicks = 4_000;
