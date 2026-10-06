@@ -82,10 +82,10 @@ export function createSmallTownScenario() {
 
   simulation.transfers.register({
     placeId: SMALL_TOWN_IDS.mine,
-    domainId: mineLoading.domainId,
-    position: mineLoading.position,
-    navigationNodeId:
-      mineLoading.nodeId,
+    source: {
+      kind: "anchor",
+      anchorId: "loading"
+    },
     range: 6
   });
 
@@ -113,11 +113,12 @@ export function createSmallTownScenario() {
   }
 
   simulation.transfers.register({
-    placeId: SMALL_TOWN_IDS.woodcutterCamp,
-    domainId: woodcutterLoading.domainId,
-    position: woodcutterLoading.position,
-    navigationNodeId:
-      woodcutterLoading.nodeId,
+    placeId:
+      SMALL_TOWN_IDS.woodcutterCamp,
+    source: {
+      kind: "anchor",
+      anchorId: "loading"
+    },
     range: 6
   });
 
@@ -125,43 +126,26 @@ export function createSmallTownScenario() {
     simulation.places.getPlace(
       SMALL_TOWN_IDS.foundry
     );
-  const foundryStreet =
+  const foundryLoading =
     foundry?.attachments.get(
-      "street"
+      "loading"
     );
 
   if (
-    !foundryStreet ||
-    !foundryStreet.nodeId
+    !foundryLoading ||
+    !foundryLoading.nodeId
   ) {
     throw new Error(
-      "small-town foundry street attachment is unresolved"
-    );
-  }
-
-  const defaultNavigation =
-    simulation.navigation
-      .navigationForDomain(
-        "default"
-      );
-  const foundryLoading =
-    defaultNavigation?.nodes.get(
-      "foundry-loading"
-    );
-
-  if (!foundryLoading) {
-    throw new Error(
-      "small-town foundry loading node is unresolved"
+      "small-town foundry loading attachment is unresolved"
     );
   }
 
   simulation.transfers.register({
     placeId: SMALL_TOWN_IDS.foundry,
-    domainId: "default",
-    position:
-      foundryLoading.position,
-    navigationNodeId:
-      foundryLoading.id,
+    source: {
+      kind: "attachment",
+      slot: "loading"
+    },
     range: 6
   });
 

@@ -720,6 +720,136 @@ test("gathering stops if the worker leaves the resource while working", () => {
   );
 });
 
+test("gathering reroutes when the deposit transfer endpoint moves during return", () => {
+  const simulation =
+    createSmallTownScenario();
+  const foundryStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.foundry
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+
+  assert.ok(foundryStorage);
+  assert.ok(carried);
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      depositPlaceId:
+        SMALL_TOWN_IDS.foundry
+    });
+
+  let ticks = 0;
+  while (
+    job.phase !== "returning" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.equal(
+    job.phase,
+    "returning",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    5
+  );
+
+  simulation.places.setPlacement(
+    SMALL_TOWN_IDS.foundry,
+    {
+      domainId: "default",
+      containment: "footprint",
+      transform: {
+        x: 131,
+        y: 115.5,
+        rotation: 0,
+        scale: 1
+      }
+    }
+  );
+  simulation.places.setAttachment(
+    SMALL_TOWN_IDS.foundry,
+    "loading",
+    {
+      domainId: "default",
+      position: {
+        x: 136,
+        y: 116
+      },
+      nodeId: "town-hall-street"
+    }
+  );
+
+  simulation.gathering.step(
+    0.25
+  );
+
+  assert.equal(
+    simulation.world
+      .getEntity("miner-01")
+      ?.journey
+      ?.destinationNodeId,
+    "town-hall-street"
+  );
+
+  let returnTicks = 0;
+  while (
+    job.phase === "returning" &&
+    returnTicks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    returnTicks += 1;
+  }
+
+  assert.ok(
+    returnTicks < 4_000,
+    "rerouted gathering return should complete"
+  );
+  assert.equal(
+    job.phase,
+    "complete",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    0
+  );
+  assert.equal(
+    foundryStorage.quantityOf(
+      "iron-ore"
+    ),
+    5
+  );
+});
+
 test("gathered output stays with the worker when the return route becomes unavailable", () => {
   const simulation =
     createSmallTownScenario();

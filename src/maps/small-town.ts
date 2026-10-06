@@ -477,6 +477,14 @@ export const SMALL_TOWN_MAP:
             y: 116
           },
           nodeId: "foundry-street"
+        },
+        loading: {
+          domainId: "default",
+          position: {
+            x: 88,
+            y: 112
+          },
+          nodeId: "foundry-loading"
         }
       },
       placement: {

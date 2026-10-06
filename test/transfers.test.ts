@@ -351,6 +351,157 @@ test("character inside another interior cannot transfer with the foundry", () =>
   );
 });
 
+test("place transfer endpoints follow live placement and attachment changes", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const original =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.foundry
+    );
+
+  assert.ok(original);
+  assert.equal(
+    original.navigationNodeId,
+    "foundry-loading"
+  );
+  assert.deepEqual(
+    original.position,
+    { x: 88, y: 112 }
+  );
+
+  const cart =
+    simulation.transports.create({
+      id: "moving-place-cart",
+      definitionId: "handcart",
+      domainId: "default",
+      position: original.position
+    });
+
+  assert.equal(
+    simulation.transfers
+      .canEntityTransfer(
+        transferEnvironment(
+          simulation
+        ),
+        cart.id,
+        SMALL_TOWN_IDS.foundry
+      ),
+    true
+  );
+
+  assert.equal(
+    simulation.places.clearAttachment(
+      SMALL_TOWN_IDS.foundry,
+      "loading"
+    ),
+    true
+  );
+  assert.equal(
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.foundry
+    ),
+    null,
+    "a registered transfer endpoint must become unavailable when its live source disappears"
+  );
+  assert.equal(
+    simulation.transfers
+      .canEntityTransfer(
+        transferEnvironment(
+          simulation
+        ),
+        cart.id,
+        SMALL_TOWN_IDS.foundry
+      ),
+    false
+  );
+
+  simulation.places.setAttachment(
+    SMALL_TOWN_IDS.foundry,
+    "loading",
+    {
+      domainId: "default",
+      position: {
+        x: 88,
+        y: 112
+      },
+      nodeId: "foundry-loading"
+    }
+  );
+
+  simulation.places.setPlacement(
+    SMALL_TOWN_IDS.foundry,
+    {
+      domainId: "default",
+      containment: "footprint",
+      transform: {
+        x: 131,
+        y: 115.5,
+        rotation: 0,
+        scale: 1
+      }
+    }
+  );
+  simulation.places.setAttachment(
+    SMALL_TOWN_IDS.foundry,
+    "loading",
+    {
+      domainId: "default",
+      position: {
+        x: 136,
+        y: 116
+      },
+      nodeId: "town-hall-street"
+    }
+  );
+
+  const moved =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.foundry
+    );
+
+  assert.ok(moved);
+  assert.equal(
+    moved.navigationNodeId,
+    "town-hall-street"
+  );
+  assert.deepEqual(
+    moved.position,
+    { x: 136, y: 116 }
+  );
+
+  assert.equal(
+    simulation.transfers
+      .canEntityTransfer(
+        transferEnvironment(
+          simulation
+        ),
+        cart.id,
+        SMALL_TOWN_IDS.foundry
+      ),
+    false,
+    "the old foundry transfer area must not survive a placement change"
+  );
+
+  simulation.world.setPosition(
+    cart.id,
+    moved.position
+  );
+
+  assert.equal(
+    simulation.transfers
+      .canEntityTransfer(
+        transferEnvironment(
+          simulation
+        ),
+        cart.id,
+        SMALL_TOWN_IDS.foundry
+      ),
+    true,
+    "the transfer area must use the foundry's current placement"
+  );
+});
+
 test("transport inside an interior does not receive character interior transfer access", () => {
   const simulation =
     createSmallTownScenario();
