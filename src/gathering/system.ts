@@ -1,4 +1,5 @@
 import {
+  rerouteJourney,
   startJourney
 } from "world-core";
 
@@ -450,6 +451,53 @@ export class GatheringSystem {
         }
 
         job.phase = "returning";
+        continue;
+      }
+
+      if (
+        job.phase === "returning" &&
+        worker.journey
+      ) {
+        const endpoint =
+          this.environment.transfers.get(
+            job.depositPlaceId
+          );
+
+        if (!endpoint) {
+          this.fail(
+            job,
+            "gathering deposit transfer endpoint unavailable"
+          );
+          continue;
+        }
+
+        if (
+          worker.journey
+            .destinationNodeId !==
+          endpoint.navigationNodeId
+        ) {
+          try {
+            if (
+              !rerouteJourney(
+                this.environment.world,
+                this.environment.navigation,
+                job.workerEntityId,
+                endpoint.navigationNodeId
+              )
+            ) {
+              this.fail(
+                job,
+                "gathering deposit reroute failed"
+              );
+            }
+          } catch {
+            this.fail(
+              job,
+              "gathering deposit reroute failed"
+            );
+          }
+        }
+
         continue;
       }
 
