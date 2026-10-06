@@ -342,6 +342,29 @@ export class GatheringSystem {
       if (
         job.phase === "working"
       ) {
+        const node =
+          this.environment.resources
+            .getNode(
+              job.resourceNodeId
+            );
+
+        if (
+          worker.journey ||
+          !node ||
+          worker.domainId !==
+            node.location.domainId ||
+          worker.position.x !==
+            node.location.position.x ||
+          worker.position.y !==
+            node.location.position.y
+        ) {
+          this.fail(
+            job,
+            "worker left resource"
+          );
+          continue;
+        }
+
         job.workRemainingSeconds -=
           deltaSeconds;
 
@@ -449,25 +472,87 @@ export class GatheringSystem {
           continue;
         }
 
-        const moved =
-          this.environment.transfers
-            .transferEntityToPlace(
-              transferEnvironment,
-              job.workerEntityId,
-              "carried",
-              job.depositPlaceId,
-              "storage",
-              job.output.itemId,
-              job.output.amount
+        const carried =
+          this.environment
+            .inventoryBindings
+            .getInventory(
+              {
+                kind: "entity",
+                id: job.workerEntityId
+              },
+              "carried"
             );
+        const deposit =
+          this.environment
+            .inventoryBindings
+            .getInventory(
+              {
+                kind: "place",
+                id: job.depositPlaceId
+              },
+              "storage"
+            );
+
+        if (
+          !carried ||
+          carried.quantityOf(
+            job.output.itemId
+          ) <
+            job.output.amount
+        ) {
+          this.fail(
+            job,
+            "gathered output changed during return"
+          );
+          continue;
+        }
+
+        if (
+          !deposit ||
+          deposit.remainingCapacity(
+            job.output.itemId
+          ) <
+            job.output.amount
+        ) {
+          this.fail(
+            job,
+            "deposit could not accept complete gathering output"
+          );
+          continue;
+        }
+
+        const moved =
+          carried.transferTo(
+            deposit,
+            job.output.itemId,
+            job.output.amount
+          );
 
         if (
           moved.moved !==
           job.output.amount
         ) {
+          if (moved.moved > 0) {
+            const rollback =
+              deposit.transferTo(
+                carried,
+                job.output.itemId,
+                moved.moved
+              );
+
+            if (
+              rollback.moved !==
+              moved.moved
+            ) {
+              throw new Error(
+                "gathering deposit rollback failed"
+              );
+            }
+          }
+
           this.fail(
             job,
-            "deposit could not accept complete gathering output"
+            "deposit changed during gathering transfer"
           );
           continue;
         }
