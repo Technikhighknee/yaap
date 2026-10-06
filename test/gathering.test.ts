@@ -336,6 +336,201 @@ test("mine is an embedded outdoor place and has no owned interior domain", () =>
 });
 
 
+test("gathering stops if the worker leaves the resource while working", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+  const ironNode =
+    simulation.resources.getNode(
+      SMALL_TOWN_RESOURCE_IDS.iron
+    );
+
+  assert.ok(storage);
+  assert.ok(carried);
+  assert.ok(ironNode);
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  let ticks = 0;
+  while (
+    job.phase !== "working" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.equal(
+    job.phase,
+    "working",
+    job.failureReason ??
+      undefined
+  );
+
+  simulation.world.setPosition(
+    "miner-01",
+    {
+      x:
+        ironNode.location
+          .position.x + 1,
+      y:
+        ironNode.location
+          .position.y
+    }
+  );
+
+  simulation.gathering.step(
+    0.25
+  );
+
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.failureReason,
+    "worker left resource"
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    0
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    0
+  );
+});
+
+test("gathering never partially deposits output when storage fills during the trip back", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+
+  assert.ok(storage);
+  assert.ok(carried);
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  let ticks = 0;
+  while (
+    job.phase !== "returning" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.equal(
+    job.phase,
+    "returning",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    5
+  );
+
+  assert.equal(
+    storage.add(
+      "iron-ore",
+      78
+    ).moved,
+    78
+  );
+
+  let returnTicks = 0;
+  while (
+    job.phase === "returning" &&
+    returnTicks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    returnTicks += 1;
+  }
+
+  assert.ok(
+    returnTicks < 4_000,
+    "gathering return should reach a terminal state"
+  );
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.failureReason,
+    "deposit could not accept complete gathering output"
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    78,
+    "deposit must remain unchanged when the full gathering output cannot fit"
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    5,
+    "the complete gathering output must remain with the worker"
+  );
+});
+
 test("multiple workers gather the same permanent resource node concurrently", () => {
   const simulation =
     createSmallTownScenario();
