@@ -17,3 +17,9 @@ When a CI run is wanted:
 Do not create feature-specific, numbered or throwaway CI branches. Do not merge the CI-only workflow commit into `main` or any development branch. The `CI` branch is persistent and is not deleted after feature merges.
 
 This keeps one stable CI branch per repository while making the tested revision explicit and preventing CI-branch sprawl.
+
+## License and usage
+
+This project is publicly viewable but is not open source.
+
+No license is granted for reuse, modification, redistribution, or incorporation into other works. All rights are reserved. See [`RIGHTS.md`](RIGHTS.md) for details.

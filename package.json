@@ -2,6 +2,7 @@
   "name": "yaap",
   "version": "0.0.0",
   "private": true,
+  "license": "UNLICENSED",
   "description": "Simulation/game playground built on world-core and place-core",
   "type": "module",
   "engines": {
