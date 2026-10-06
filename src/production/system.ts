@@ -821,6 +821,101 @@ export class ProductionSystem {
     }
   }
 
+  assertInternalConsistency(): {
+    recipeCount: number;
+    jobCount: number;
+    workstationClaimCount: number;
+  } {
+    const expectedClaims =
+      new Map<string, string>();
+
+    for (const job of this.jobs.values()) {
+      const shouldHoldClaim =
+        job.phase ===
+          "travelling-to-workstation" ||
+        job.phase === "working" ||
+        job.phase ===
+          "awaiting-output";
+
+      if (shouldHoldClaim) {
+        if (
+          job.workstationAnchorId === null
+        ) {
+          throw new Error(
+            `active production job lacks workstation claim: ${job.workerEntityId}`
+          );
+        }
+
+        const anchor =
+          this.environment.places
+            .resolveAnchor(
+              job.placeId,
+              job.workstationAnchorId
+            );
+
+        if (
+          !anchor ||
+          !anchor.tags.includes(
+            job.recipe.workstationTag
+          )
+        ) {
+          throw new Error(
+            `production workstation claim target mismatch: ${job.workerEntityId}`
+          );
+        }
+
+        const key =
+          this.workstationClaimKey(
+            job.placeId,
+            job.workstationAnchorId
+          );
+
+        if (expectedClaims.has(key)) {
+          throw new Error(
+            `duplicate production workstation claim: ${job.placeId}:${job.workstationAnchorId}`
+          );
+        }
+
+        expectedClaims.set(
+          key,
+          job.workerEntityId
+        );
+      }
+    }
+
+    if (
+      expectedClaims.size !==
+      this.workstationClaims.size
+    ) {
+      throw new Error(
+        "production workstation claim count mismatch"
+      );
+    }
+
+    for (
+      const [key, workerEntityId]
+      of expectedClaims
+    ) {
+      if (
+        this.workstationClaims.get(key) !==
+        workerEntityId
+      ) {
+        throw new Error(
+          `production workstation claim index mismatch: ${workerEntityId}`
+        );
+      }
+    }
+
+    return {
+      recipeCount:
+        this.recipes.size,
+      jobCount:
+        this.jobs.size,
+      workstationClaimCount:
+        this.workstationClaims.size
+    };
+  }
+
   private storage(
     placeId: string
   ): Inventory {

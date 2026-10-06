@@ -236,6 +236,18 @@ test("one physical forge serializes production workers", () => {
     jobs[1]?.workstationAnchorId,
     null
   );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .jobCount,
+    2
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
+    1
+  );
 
   const deltaSeconds = 0.25;
   const maxTicks = 4_000;
@@ -320,6 +332,18 @@ test("one physical forge serializes production workers", () => {
   assert.equal(
     storage.quantityOf("iron"),
     10
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .jobCount,
+    2
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
+    0
   );
 });
 
