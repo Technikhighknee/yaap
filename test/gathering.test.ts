@@ -336,6 +336,105 @@ test("mine is an embedded outdoor place and has no owned interior domain", () =>
 });
 
 
+test("gathering can start with a full deposit if capacity is available by return", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+
+  assert.ok(storage);
+  assert.ok(carried);
+
+  storage.add("iron-ore", 80);
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  assert.equal(
+    job.phase,
+    "travelling-to-resource"
+  );
+
+  let ticks = 0;
+  while (
+    job.phase !== "returning" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.equal(
+    job.phase,
+    "returning",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    5
+  );
+
+  storage.remove("iron-ore", 5);
+
+  let returnTicks = 0;
+  while (
+    job.phase === "returning" &&
+    returnTicks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    returnTicks += 1;
+  }
+
+  assert.ok(
+    returnTicks < 4_000,
+    "gathering return should finish once deposit capacity is available"
+  );
+  assert.equal(
+    job.phase,
+    "complete",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    80
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    0
+  );
+});
+
 test("gathering stops if the worker leaves the resource while working", () => {
   const simulation =
     createSmallTownScenario();
