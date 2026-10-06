@@ -303,7 +303,7 @@ test("iron resource becomes processed iron through gathering, hauling, and inter
       placeId:
         SMALL_TOWN_IDS
           .woodcutterCamp,
-      recipeId: "burn-charcoal"
+      recipeId: "burn-pine-charcoal"
     });
 
   runUntil(
