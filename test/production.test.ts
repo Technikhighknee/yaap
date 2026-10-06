@@ -960,6 +960,113 @@ test("failed production releases the workstation to a waiting worker", () => {
 });
 
 
+test("failed production keeps reserved inputs pending until refund storage is available", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.foundry
+        },
+        "storage"
+      );
+  const forge =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.foundry,
+      "forge"
+    );
+
+  assert.ok(storage);
+  assert.ok(forge);
+
+  storage.add("iron-ore", 5);
+  storage.add("charcoal", 2);
+
+  simulation.world.addEntity({
+    id: "refund-pending-smith",
+    kind: "person",
+    domainId: forge.domainId,
+    position: forge.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const job =
+    simulation.production.start({
+      workerEntityId:
+        "refund-pending-smith",
+      placeId:
+        SMALL_TOWN_IDS.foundry,
+      recipeId: "smelt-iron"
+    });
+
+  storage.add("gemstone", 20);
+  storage.add("pinewood", 20);
+  storage.add("oakwood", 20);
+  storage.add("water", 20);
+
+  simulation.world.setPosition(
+    "refund-pending-smith",
+    { x: 5, y: 4 }
+  );
+
+  simulation.production.step(0.25);
+
+  assert.equal(
+    job.phase,
+    "refund-pending"
+  );
+  assert.equal(
+    job.reservedInputs.length,
+    2
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    0
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    0
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
+    0,
+    "a blocked refund must not keep the physical workstation reserved"
+  );
+
+  storage.remove("water", 20);
+  storage.remove("oakwood", 20);
+
+  simulation.production.step(0.25);
+
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.reservedInputs.length,
+    0
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    5
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    2
+  );
+  assert.equal(
+    storage.quantityOf("iron"),
+    0
+  );
+});
+
 test("disabling a workstation space fails and refunds active production", () => {
   const simulation =
     createSmallTownScenario();
