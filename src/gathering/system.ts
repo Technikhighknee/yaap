@@ -430,10 +430,6 @@ export class GatheringSystem {
             endpoint.navigationNodeId
           )
         ) {
-          carried.remove(
-            job.output.itemId,
-            job.output.amount
-          );
           this.fail(
             job,
             "cannot route worker back to deposit"
