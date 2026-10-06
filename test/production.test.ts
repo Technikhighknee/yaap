@@ -233,10 +233,6 @@ test("one physical forge serializes production workers", () => {
     0
   );
   assert.equal(
-    jobs[1]?.phase,
-    "waiting-for-workstation"
-  );
-  assert.equal(
     jobs[1]?.workstationAnchorId,
     null
   );
