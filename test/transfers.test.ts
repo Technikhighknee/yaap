@@ -390,6 +390,45 @@ test("place transfer endpoints follow live placement and attachment changes", ()
     true
   );
 
+  assert.equal(
+    simulation.places.clearAttachment(
+      SMALL_TOWN_IDS.foundry,
+      "loading"
+    ),
+    true
+  );
+  assert.equal(
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.foundry
+    ),
+    null,
+    "a registered transfer endpoint must become unavailable when its live source disappears"
+  );
+  assert.equal(
+    simulation.transfers
+      .canEntityTransfer(
+        transferEnvironment(
+          simulation
+        ),
+        cart.id,
+        SMALL_TOWN_IDS.foundry
+      ),
+    false
+  );
+
+  simulation.places.setAttachment(
+    SMALL_TOWN_IDS.foundry,
+    "loading",
+    {
+      domainId: "default",
+      position: {
+        x: 88,
+        y: 112
+      },
+      nodeId: "foundry-loading"
+    }
+  );
+
   simulation.places.setPlacement(
     SMALL_TOWN_IDS.foundry,
     {
