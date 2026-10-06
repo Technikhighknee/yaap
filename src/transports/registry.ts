@@ -93,7 +93,47 @@ export class TransportRegistry {
   constructor(
     private readonly environment:
       TransportEnvironment
-  ) {}
+  ) {
+    this.environment.world
+      .subscribeEvents(
+        (event) => {
+          if (
+            event.type !==
+              "entityRemoved" ||
+            typeof event.entityId !==
+              "string"
+          ) {
+            return;
+          }
+
+          const transportId =
+            this.operatedBy.get(
+              event.entityId
+            );
+
+          if (
+            transportId === undefined
+          ) {
+            return;
+          }
+
+          if (
+            !this.instances.has(
+              transportId
+            )
+          ) {
+            this.operatedBy.delete(
+              event.entityId
+            );
+            return;
+          }
+
+          this.clearOperator(
+            transportId
+          );
+        }
+      );
+  }
 
   registerDefinition(
     definition: TransportDefinition

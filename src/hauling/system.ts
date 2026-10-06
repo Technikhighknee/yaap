@@ -499,6 +499,17 @@ export class HaulingSystem {
         continue;
       }
 
+      if (
+        transport.operatorEntityId ===
+        null
+      ) {
+        this.fail(
+          job,
+          "transport lost operator"
+        );
+        continue;
+      }
+
       const entity =
         this.environment.world
           .getEntity(

@@ -411,6 +411,94 @@ test("clearing a transport operator cancels its active journey", () => {
   );
 });
 
+test("removing an operator entity immediately detaches and stops its transport", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  const navigation =
+    simulation.navigation
+      .navigationForDomain(
+        "default"
+      );
+  assert.ok(navigation);
+
+  const start =
+    navigation.nodes.get(
+      "foundry-street"
+    );
+  const destination =
+    navigation.nodes.get(
+      "market-center"
+    );
+
+  assert.ok(start);
+  assert.ok(destination);
+
+  simulation.world.addEntity({
+    id: "removed-carter",
+    kind: "person",
+    domainId: "default",
+    position: start.position,
+    mobility:
+      mobilityProfile("pedestrian")
+  });
+
+  const cart =
+    simulation.transports.create({
+      id: "removed-operator-cart",
+      definitionId: "handcart",
+      domainId: "default",
+      position: start.position,
+      operatorEntityId:
+        "removed-carter"
+    });
+
+  assert.equal(
+    simulation.transports
+      .startJourney(
+        cart.id,
+        destination.id
+      ),
+    true
+  );
+
+  assert.ok(
+    simulation.world
+      .getEntity(cart.id)
+      ?.journey
+  );
+
+  assert.equal(
+    simulation.world.removeEntity(
+      "removed-carter"
+    ),
+    true
+  );
+
+  const cartEntity =
+    simulation.world
+      .getEntity(cart.id);
+
+  assert.ok(cartEntity);
+  assert.equal(
+    cartEntity.journey,
+    null,
+    "operator removal must stop the transport synchronously"
+  );
+  assert.equal(
+    simulation.transports
+      .get(cart.id)
+      ?.operatorEntityId,
+    null
+  );
+  assert.equal(
+    simulation.transports
+      .assertInternalConsistency()
+      .operatedTransportCount,
+    0
+  );
+});
+
 test("transport creation rejects prebound cargo before mutating the world", () => {
   const simulation =
     createSmallTownScenario();
