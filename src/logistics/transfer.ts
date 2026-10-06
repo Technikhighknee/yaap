@@ -29,6 +29,23 @@ export interface TransferEnvironment {
     InventoryBindingRegistry;
 }
 
+export type PlaceTransferEndpointSource =
+  | {
+      readonly kind: "anchor";
+      readonly anchorId: string;
+    }
+  | {
+      readonly kind: "attachment";
+      readonly slot: string;
+    };
+
+export interface PlaceTransferEndpointRegistration {
+  readonly placeId: string;
+  readonly source:
+    PlaceTransferEndpointSource;
+  readonly range: number;
+}
+
 export interface PlaceTransferEndpoint {
   readonly placeId: string;
   readonly domainId: string;
@@ -49,6 +66,12 @@ type ResolvedTransform =
   >;
 
 interface RegisteredPlaceTransferEndpoint
+  extends PlaceTransferEndpointRegistration {
+  readonly source:
+    PlaceTransferEndpointSource;
+}
+
+interface ResolvedPlaceTransferEndpoint
   extends PlaceTransferEndpoint {
   readonly footprint: Geometry;
   readonly transform:
@@ -159,22 +182,27 @@ export class PlaceTransferRegistry {
   ) {}
 
   register(
-    endpoint: PlaceTransferEndpoint
+    endpoint:
+      PlaceTransferEndpointRegistration
   ): void {
     if (
       endpoint.placeId.length === 0 ||
-      endpoint.domainId.length === 0 ||
-      endpoint.navigationNodeId.length === 0 ||
-      !Number.isFinite(
-        endpoint.position.x
-      ) ||
-      !Number.isFinite(
-        endpoint.position.y
-      ) ||
       !Number.isFinite(
         endpoint.range
       ) ||
-      endpoint.range < 0
+      endpoint.range < 0 ||
+      (
+        endpoint.source.kind ===
+          "anchor" &&
+        endpoint.source.anchorId
+          .length === 0
+      ) ||
+      (
+        endpoint.source.kind ===
+          "attachment" &&
+        endpoint.source.slot.length ===
+          0
+      )
     ) {
       throw new TypeError(
         "invalid place transfer endpoint"
@@ -191,81 +219,69 @@ export class PlaceTransferRegistry {
       );
     }
 
-    const place =
-      this.places.getPlace(
-        endpoint.placeId
-      );
-
-    if (!place) {
-      throw new Error(
-        `unknown transfer place: ${endpoint.placeId}`
-      );
-    }
-
-    const definition =
-      this.places.getDefinition(
-        place.definitionId
-      );
+    const registered:
+      RegisteredPlaceTransferEndpoint =
+        Object.freeze({
+          placeId:
+            endpoint.placeId,
+          source:
+            Object.freeze({
+              ...endpoint.source
+            }),
+          range:
+            endpoint.range
+        });
 
     if (
-      !definition?.footprint
+      !this.resolveEndpoint(
+        registered
+      )
     ) {
       throw new Error(
-        `transfer place has no footprint: ${endpoint.placeId}`
-      );
-    }
-
-    const placement =
-      this.places
-        .getResolvedPlacement(
-          endpoint.placeId
-        );
-
-    if (!placement) {
-      throw new Error(
-        `transfer place has no resolved placement: ${endpoint.placeId}`
-      );
-    }
-
-    if (
-      placement.domainId !==
-      endpoint.domainId
-    ) {
-      throw new Error(
-        `transfer navigation domain does not match place placement: ${endpoint.placeId}`
+        `place transfer endpoint source is unresolved: ${endpoint.placeId}`
       );
     }
 
     this.endpoints.set(
       endpoint.placeId,
-      Object.freeze({
-        placeId:
-          endpoint.placeId,
-        domainId:
-          endpoint.domainId,
-        position:
-          Object.freeze({
-            x: endpoint.position.x,
-            y: endpoint.position.y
-          }),
-        navigationNodeId:
-          endpoint.navigationNodeId,
-        range: endpoint.range,
-        footprint:
-          definition.footprint,
-        transform:
-          placement.transform
-      })
+      registered
     );
   }
 
   get(
     placeId: string
   ): PlaceTransferEndpoint | null {
-    return (
-      this.endpoints.get(placeId) ??
-      null
-    );
+    const registered =
+      this.endpoints.get(placeId);
+
+    if (!registered) {
+      return null;
+    }
+
+    const resolved =
+      this.resolveEndpoint(
+        registered
+      );
+
+    if (!resolved) {
+      return null;
+    }
+
+    return Object.freeze({
+      placeId:
+        resolved.placeId,
+      domainId:
+        resolved.domainId,
+      position:
+        Object.freeze({
+          x: resolved.position.x,
+          y: resolved.position.y
+        }),
+      navigationNodeId:
+        resolved.navigationNodeId,
+      range:
+        resolved.range
+    });
   }
 
   canEntityTransfer(
@@ -297,8 +313,14 @@ export class PlaceTransferRegistry {
       }
     }
 
-    const endpoint =
+    const registered =
       this.endpoints.get(placeId);
+    const endpoint =
+      registered
+        ? this.resolveEndpoint(
+            registered
+          )
+        : null;
 
     if (
       !endpoint ||
@@ -416,6 +438,74 @@ export class PlaceTransferRegistry {
       itemId,
       amount
     );
+  }
+
+  private resolveEndpoint(
+    registered:
+      RegisteredPlaceTransferEndpoint
+  ): ResolvedPlaceTransferEndpoint | null {
+    const place =
+      this.places.getPlace(
+        registered.placeId
+      );
+
+    if (!place) {
+      return null;
+    }
+
+    const definition =
+      this.places.getDefinition(
+        place.definitionId
+      );
+    const placement =
+      this.places
+        .getResolvedPlacement(
+          registered.placeId
+        );
+
+    if (
+      !definition?.footprint ||
+      !placement
+    ) {
+      return null;
+    }
+
+    const source =
+      registered.source.kind ===
+        "anchor"
+        ? this.places.resolveAnchor(
+            registered.placeId,
+            registered.source.anchorId
+          )
+        : place.attachments.get(
+            registered.source.slot
+          ) ?? null;
+
+    if (
+      !source ||
+      !source.nodeId ||
+      source.domainId !==
+        placement.domainId
+    ) {
+      return null;
+    }
+
+    return {
+      placeId:
+        registered.placeId,
+      domainId:
+        source.domainId,
+      position:
+        source.position,
+      navigationNodeId:
+        source.nodeId,
+      range:
+        registered.range,
+      footprint:
+        definition.footprint,
+      transform:
+        placement.transform
+    };
   }
 
   private requireTransferRange(
