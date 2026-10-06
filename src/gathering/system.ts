@@ -310,6 +310,8 @@ export class GatheringSystem {
 
           if (
             !node ||
+            node.resourceTypeId !==
+              job.output.resourceTypeId ||
             worker.domainId !==
               node.location.domainId ||
             worker.position.x !==
@@ -341,6 +343,8 @@ export class GatheringSystem {
         if (
           worker.journey ||
           !node ||
+          node.resourceTypeId !==
+            job.output.resourceTypeId ||
           worker.domainId !==
             node.location.domainId ||
           worker.position.x !==
