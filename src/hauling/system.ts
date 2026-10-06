@@ -524,7 +524,49 @@ export class HaulingSystem {
         continue;
       }
 
+      const targetEndpoint =
+        this.environment.transfers.get(
+          job.targetPlaceId
+        );
+
+      if (!targetEndpoint) {
+        this.fail(
+          job,
+          "hauling target transfer endpoint unavailable"
+        );
+        continue;
+      }
+
       if (entity.journey) {
+        if (
+          entity.journey
+            .destinationNodeId !==
+          targetEndpoint
+            .navigationNodeId
+        ) {
+          try {
+            if (
+              !this.environment
+                .transports
+                .rerouteJourney(
+                  job.transportId,
+                  targetEndpoint
+                    .navigationNodeId
+                )
+            ) {
+              this.fail(
+                job,
+                "hauling target reroute failed"
+              );
+            }
+          } catch {
+            this.fail(
+              job,
+              "hauling target reroute failed"
+            );
+          }
+        }
+
         continue;
       }
 
