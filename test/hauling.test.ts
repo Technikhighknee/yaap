@@ -129,6 +129,109 @@ test("hauling start validation does not mutate inventories", () => {
   );
 });
 
+test("hauling fails cleanly and keeps cargo when the transport loses its operator", () => {
+  const simulation =
+    createSmallTownScenario();
+  const mineStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const foundryStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.foundry
+        },
+        "storage"
+      );
+
+  assert.ok(mineStorage);
+  assert.ok(foundryStorage);
+
+  const { cart } =
+    createMineCart(simulation);
+  const cargo =
+    simulation.transports.cargo(
+      cart.id
+    );
+
+  mineStorage.add("iron-ore", 5);
+
+  const job =
+    simulation.hauling.start({
+      transportId: cart.id,
+      sourcePlaceId:
+        SMALL_TOWN_IDS.mine,
+      sourceChannel: "storage",
+      targetPlaceId:
+        SMALL_TOWN_IDS.foundry,
+      targetChannel: "storage",
+      manifest: [
+        {
+          itemId: "iron-ore",
+          amount: 5
+        }
+      ]
+    });
+
+  assert.equal(
+    cargo.quantityOf("iron-ore"),
+    5
+  );
+  assert.ok(
+    simulation.world
+      .getEntity(cart.id)
+      ?.journey
+  );
+
+  simulation.transports
+    .clearOperator(cart.id);
+
+  const stoppedPosition = {
+    ...simulation.world
+      .getEntity(cart.id)!
+      .position
+  };
+
+  stepSimulation(
+    simulation,
+    0.25
+  );
+
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.failureReason,
+    "transport lost operator"
+  );
+  assert.equal(
+    cargo.quantityOf("iron-ore"),
+    5
+  );
+  assert.equal(
+    mineStorage.quantityOf("iron-ore"),
+    0
+  );
+  assert.equal(
+    foundryStorage.quantityOf("iron-ore"),
+    0
+  );
+  assert.deepEqual(
+    simulation.world
+      .getEntity(cart.id)
+      ?.position,
+    stoppedPosition
+  );
+});
+
 test("hauling keeps the full cargo when target capacity disappears in transit", () => {
   const simulation =
     createSmallTownScenario();
