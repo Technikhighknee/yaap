@@ -960,6 +960,101 @@ test("failed production releases the workstation to a waiting worker", () => {
 });
 
 
+test("disabling a workstation space fails and refunds active production", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.foundry
+        },
+        "storage"
+      );
+  const forge =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.foundry,
+      "forge"
+    );
+
+  assert.ok(storage);
+  assert.ok(forge);
+
+  storage.add("iron-ore", 5);
+  storage.add("charcoal", 2);
+
+  simulation.world.addEntity({
+    id: "disabled-space-smith",
+    kind: "person",
+    domainId: forge.domainId,
+    position: forge.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const job =
+    simulation.production.start({
+      workerEntityId:
+        "disabled-space-smith",
+      placeId:
+        SMALL_TOWN_IDS.foundry,
+      recipeId: "smelt-iron"
+    });
+
+  assert.equal(
+    job.phase,
+    "working"
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
+    1
+  );
+
+  simulation.places.setSpaceState(
+    SMALL_TOWN_IDS.foundry,
+    "workshop",
+    { enabled: false }
+  );
+
+  simulation.production.step(0.25);
+
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.match(
+    job.failureReason ?? "",
+    /left production workstation/
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    5
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    2
+  );
+  assert.equal(
+    storage.quantityOf("iron"),
+    0
+  );
+  assert.equal(
+    job.reservedInputs.length,
+    0
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
+    0
+  );
+});
+
 test("woodcutter can burn gathered wood into charcoal at the camp kiln", () => {
   const simulation =
     createSmallTownScenario();
