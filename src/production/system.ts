@@ -807,10 +807,6 @@ export class ProductionSystem {
         continue;
       }
 
-      this.releaseWorkstation(
-        job
-      );
-
       job.reservedInputs =
         Object.freeze([]);
 
@@ -1100,6 +1096,10 @@ export class ProductionSystem {
     addManifest(
       storage,
       job.recipe.outputs
+    );
+
+    this.releaseWorkstation(
+      job
     );
 
     job.phase = "complete";
