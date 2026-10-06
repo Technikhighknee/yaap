@@ -476,7 +476,7 @@ test("different physical workstations can run concurrently", () => {
   );
 });
 
-test("finished production waits atomically when output storage fills during work", () => {
+test("blocked production output keeps the physical workstation reserved", () => {
   const simulation =
     createSmallTownScenario();
   const storage =
@@ -491,15 +491,19 @@ test("finished production waits atomically when output storage fills during work
 
   assert.ok(storage);
 
-  storage.add("iron-ore", 5);
-  storage.add("charcoal", 2);
+  storage.add("iron-ore", 10);
+  storage.add("charcoal", 4);
 
   addFoundryWorker(
     simulation,
     "blocked-smith"
   );
+  addFoundryWorker(
+    simulation,
+    "waiting-smith"
+  );
 
-  const job =
+  const blockedJob =
     simulation.production.start({
       workerEntityId:
         "blocked-smith",
@@ -507,6 +511,19 @@ test("finished production waits atomically when output storage fills during work
         SMALL_TOWN_IDS.foundry,
       recipeId: "smelt-iron"
     });
+  const waitingJob =
+    simulation.production.start({
+      workerEntityId:
+        "waiting-smith",
+      placeId:
+        SMALL_TOWN_IDS.foundry,
+      recipeId: "smelt-iron"
+    });
+
+  assert.equal(
+    waitingJob.workstationAnchorId,
+    null
+  );
 
   storage.add("gemstone", 20);
   storage.add("pinewood", 20);
@@ -518,9 +535,9 @@ test("finished production waits atomically when output storage fills during work
   let ticks = 0;
 
   while (
-    job.phase !==
+    blockedJob.phase !==
       "awaiting-output" &&
-    job.phase !== "failed" &&
+    blockedJob.phase !== "failed" &&
     ticks < maxTicks
   ) {
     stepSimulation(
@@ -535,9 +552,9 @@ test("finished production waits atomically when output storage fills during work
     "production should reach output blocking"
   );
   assert.equal(
-    job.phase,
+    String(blockedJob.phase),
     "awaiting-output",
-    job.failureReason ??
+    blockedJob.failureReason ??
       undefined
   );
   assert.equal(
@@ -545,9 +562,18 @@ test("finished production waits atomically when output storage fills during work
     0
   );
   assert.equal(
-    job.reservedInputs.length,
+    blockedJob.reservedInputs.length,
     0,
     "inputs are consumed once work finishes"
+  );
+  assert.equal(
+    blockedJob.workstationAnchorId,
+    "forge"
+  );
+  assert.equal(
+    waitingJob.workstationAnchorId,
+    null,
+    "the waiting job must not acquire a forge with blocked output"
   );
 
   storage.remove("water", 20);
@@ -558,12 +584,46 @@ test("finished production waits atomically when output storage fills during work
   );
 
   assert.equal(
-    job.phase,
+    String(blockedJob.phase),
     "complete"
   );
   assert.equal(
     storage.quantityOf("iron"),
     5
+  );
+  assert.equal(
+    waitingJob.workstationAnchorId,
+    "forge",
+    "the waiting job should acquire the forge after output clears"
+  );
+
+  let waitingTicks = 0;
+
+  while (
+    waitingJob.phase !== "complete" &&
+    waitingJob.phase !== "failed" &&
+    waitingTicks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    waitingTicks += 1;
+  }
+
+  assert.ok(
+    waitingTicks < maxTicks,
+    "the waiting production job should finish after the forge is released"
+  );
+  assert.equal(
+    waitingJob.phase,
+    "complete",
+    waitingJob.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("iron"),
+    10
   );
 });
 
