@@ -525,7 +525,7 @@ test("woodcutter can burn gathered wood into charcoal at the camp kiln", () => {
       placeId:
         SMALL_TOWN_IDS
           .woodcutterCamp,
-      recipeId: "burn-charcoal"
+      recipeId: "burn-pine-charcoal"
     });
 
   const deltaSeconds = 0.25;
@@ -646,7 +646,7 @@ test("charcoal burner works at the exterior kiln without leaving the host domain
       placeId:
         SMALL_TOWN_IDS
           .woodcutterCamp,
-      recipeId: "burn-charcoal"
+      recipeId: "burn-pine-charcoal"
     });
 
   assert.equal(
