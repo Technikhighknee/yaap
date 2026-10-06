@@ -82,6 +82,7 @@ const blueprint = {
       },
       tags: [
         "charcoal",
+        "charcoal-burning",
         "production",
         "workstation",
         "outdoor"
