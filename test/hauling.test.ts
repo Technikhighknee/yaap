@@ -438,6 +438,133 @@ test("hauling never partially unloads a manifest whose cargo changed in transit"
   );
 });
 
+test("hauling reroutes when the target transfer endpoint moves in transit", () => {
+  const simulation =
+    createSmallTownScenario();
+  const mineStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const foundryStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.foundry
+        },
+        "storage"
+      );
+
+  assert.ok(mineStorage);
+  assert.ok(foundryStorage);
+
+  const { cart } =
+    createMineCart(simulation);
+
+  mineStorage.add("iron-ore", 5);
+
+  const job =
+    simulation.hauling.start({
+      transportId: cart.id,
+      sourcePlaceId:
+        SMALL_TOWN_IDS.mine,
+      sourceChannel: "storage",
+      targetPlaceId:
+        SMALL_TOWN_IDS.foundry,
+      targetChannel: "storage",
+      manifest: [
+        {
+          itemId: "iron-ore",
+          amount: 5
+        }
+      ]
+    });
+
+  assert.equal(
+    simulation.world
+      .getEntity(cart.id)
+      ?.journey
+      ?.destinationNodeId,
+    "foundry-loading"
+  );
+
+  simulation.places.setPlacement(
+    SMALL_TOWN_IDS.foundry,
+    {
+      domainId: "default",
+      containment: "footprint",
+      transform: {
+        x: 131,
+        y: 115.5,
+        rotation: 0,
+        scale: 1
+      }
+    }
+  );
+  simulation.places.setAttachment(
+    SMALL_TOWN_IDS.foundry,
+    "loading",
+    {
+      domainId: "default",
+      position: {
+        x: 136,
+        y: 116
+      },
+      nodeId: "town-hall-street"
+    }
+  );
+
+  simulation.hauling.step();
+
+  assert.equal(
+    simulation.world
+      .getEntity(cart.id)
+      ?.journey
+      ?.destinationNodeId,
+    "town-hall-street"
+  );
+
+  let ticks = 0;
+  while (
+    job.phase === "travelling" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < 4_000,
+    "rerouted hauling should complete"
+  );
+  assert.equal(
+    job.phase,
+    "complete",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    foundryStorage.quantityOf(
+      "iron-ore"
+    ),
+    5
+  );
+  assert.equal(
+    simulation.transports
+      .cargo(cart.id)
+      .quantityOf("iron-ore"),
+    0
+  );
+});
+
 test("hauling keeps the full cargo when target capacity disappears in transit", () => {
   const simulation =
     createSmallTownScenario();
