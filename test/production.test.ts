@@ -347,6 +347,138 @@ test("one physical forge serializes production workers", () => {
   );
 });
 
+test("deferred workstation acquisition failure is contained and refunded", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.foundry
+        },
+        "storage"
+      );
+  const forge =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.foundry,
+      "forge"
+    );
+
+  assert.ok(storage);
+  assert.ok(forge);
+
+  storage.add("iron-ore", 10);
+  storage.add("charcoal", 4);
+
+  simulation.world.addEntity({
+    id: "active-smith",
+    kind: "person",
+    domainId: forge.domainId,
+    position: forge.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+  addFoundryWorker(
+    simulation,
+    "waiting-smith"
+  );
+
+  const activeJob =
+    simulation.production.start({
+      workerEntityId:
+        "active-smith",
+      placeId:
+        SMALL_TOWN_IDS.foundry,
+      recipeId: "smelt-iron"
+    });
+  const waitingJob =
+    simulation.production.start({
+      workerEntityId:
+        "waiting-smith",
+      placeId:
+        SMALL_TOWN_IDS.foundry,
+      recipeId: "smelt-iron"
+    });
+
+  assert.equal(
+    activeJob.phase,
+    "working"
+  );
+  assert.equal(
+    waitingJob.workstationAnchorId,
+    null
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    0
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    0
+  );
+
+  const originalPlanLocalRoute =
+    simulation.bridge.planLocalRoute;
+
+  simulation.bridge.planLocalRoute =
+    () => {
+      throw new Error(
+        "synthetic exact workstation route failure"
+      );
+    };
+
+  try {
+    assert.doesNotThrow(() => {
+      simulation.production.step(20);
+    });
+  } finally {
+    simulation.bridge.planLocalRoute =
+      originalPlanLocalRoute;
+  }
+
+  assert.equal(
+    activeJob.phase,
+    "complete"
+  );
+  assert.equal(
+    waitingJob.phase,
+    "failed"
+  );
+  assert.equal(
+    waitingJob.failureReason,
+    "failed to acquire production workstation"
+  );
+  assert.equal(
+    waitingJob.workstationAnchorId,
+    null
+  );
+  assert.equal(
+    storage.quantityOf("iron"),
+    5
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    5
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    2
+  );
+  assert.equal(
+    waitingJob.reservedInputs.length,
+    0
+  );
+  assert.equal(
+    simulation.production
+      .assertInternalConsistency()
+      .workstationClaimCount,
+    0
+  );
+});
+
 test("different physical workstations can run concurrently", () => {
   const simulation =
     createSmallTownScenario();
