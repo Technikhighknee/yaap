@@ -22,8 +22,8 @@ export const PRODUCTION_RECIPES = [
       }
     ],
     workSeconds: 16,
-    workstationAnchorId:
-      "charcoal-kiln"
+    workstationTag:
+      "charcoal-burning"
   },
   {
     id: "burn-oak-charcoal",
@@ -40,8 +40,8 @@ export const PRODUCTION_RECIPES = [
       }
     ],
     workSeconds: 16,
-    workstationAnchorId:
-      "charcoal-kiln"
+    workstationTag:
+      "charcoal-burning"
   },
   {
     id: "smelt-iron",
@@ -62,7 +62,7 @@ export const PRODUCTION_RECIPES = [
       }
     ],
     workSeconds: 12,
-    workstationAnchorId: "forge"
+    workstationTag: "forge"
   }
 ] as const satisfies
   readonly ProductionRecipeDefinition[];
