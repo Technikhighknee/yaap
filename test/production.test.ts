@@ -685,6 +685,51 @@ test("charcoal burner works at the exterior kiln without leaving the host domain
     2
   );
 
+  storage.add("oakwood", 5);
+
+  const oakJob =
+    simulation.production.start({
+      workerEntityId:
+        "charcoal-burner",
+      placeId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      recipeId: "burn-oak-charcoal"
+    });
+
+  let oakTicks = 0;
+
+  while (
+    oakJob.phase !== "complete" &&
+    oakJob.phase !== "failed" &&
+    oakTicks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    oakTicks += 1;
+  }
+
+  assert.ok(
+    oakTicks < maxTicks,
+    "oak charcoal production should finish"
+  );
+  assert.equal(
+    oakJob.phase,
+    "complete",
+    oakJob.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("oakwood"),
+    0
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    4
+  );
+
   const worker =
     simulation.world.getEntity(
       "charcoal-burner"
