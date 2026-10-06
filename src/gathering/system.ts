@@ -215,16 +215,6 @@ export class GatheringSystem {
         `gathering deposit place has no storage: ${input.depositPlaceId}`
       );
     }
-    if (
-      deposit.remainingCapacity(
-        output.itemId
-      ) < output.amount
-    ) {
-      throw new Error(
-        `gathering deposit storage lacks capacity: ${input.depositPlaceId}`
-      );
-    }
-
     const endpoint =
       this.environment.transfers.get(
         input.depositPlaceId
