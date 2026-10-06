@@ -1,5 +1,6 @@
 import {
   mobilityProfile,
+  rerouteJourney,
   startJourney,
   stopJourney
 } from "world-core";
@@ -482,6 +483,30 @@ export class TransportRegistry {
     }
 
     return startJourney(
+      this.environment.world,
+      this.environment.navigation,
+      transport.worldEntityId,
+      destinationNodeId
+    );
+  }
+
+  rerouteJourney(
+    id: TransportId,
+    destinationNodeId: string
+  ): boolean {
+    const transport =
+      this.require(id);
+
+    if (
+      transport.operatorEntityId ===
+      null
+    ) {
+      throw new Error(
+        `transport has no operator: ${id}`
+      );
+    }
+
+    return rerouteJourney(
       this.environment.world,
       this.environment.navigation,
       transport.worldEntityId,
