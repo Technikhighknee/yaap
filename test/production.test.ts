@@ -475,3 +475,288 @@ test("production refunds reserved inputs when a worker leaves before finishing",
     0
   );
 });
+
+
+test("woodcutter can burn gathered wood into charcoal at the camp kiln", () => {
+  const simulation =
+    createSmallTownScenario();
+  const endpoint =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.woodcutterCamp
+    );
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id:
+            SMALL_TOWN_IDS
+              .woodcutterCamp
+        },
+        "storage"
+      );
+  const kiln =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.woodcutterCamp,
+      "charcoal-kiln"
+    );
+
+  assert.ok(endpoint);
+  assert.ok(storage);
+  assert.ok(kiln);
+
+  storage.add("pinewood", 5);
+
+  simulation.world.addEntity({
+    id: "charcoal-burner",
+    kind: "person",
+    domainId: endpoint.domainId,
+    position: endpoint.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const job =
+    simulation.production.start({
+      workerEntityId:
+        "charcoal-burner",
+      placeId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      recipeId: "burn-pine-charcoal"
+    });
+
+  const deltaSeconds = 0.25;
+  const maxTicks = 4_000;
+  let ticks = 0;
+  let sawWorkingAtKiln = false;
+
+  while (
+    job.phase !== "complete" &&
+    job.phase !== "failed" &&
+    ticks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+
+    if (job.phase === "working") {
+      const worker =
+        simulation.world.getEntity(
+          "charcoal-burner"
+        );
+      assert.ok(worker);
+      assert.equal(
+        worker.domainId,
+        kiln.domainId
+      );
+      assert.deepEqual(
+        worker.position,
+        kiln.position
+      );
+      sawWorkingAtKiln = true;
+    }
+
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < maxTicks,
+    "charcoal production should finish"
+  );
+  assert.equal(
+    job.phase,
+    "complete",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    sawWorkingAtKiln,
+    true
+  );
+  assert.equal(
+    storage.quantityOf(
+      "pinewood"
+    ),
+    0
+  );
+  assert.equal(
+    storage.quantityOf(
+      "charcoal"
+    ),
+    2
+  );
+});
+
+
+test("charcoal burner works at the exterior kiln without leaving the host domain", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  simulation.world
+    .configureLocalSteering({
+      enabled: true
+    });
+
+  const endpoint =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.woodcutterCamp
+    );
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id:
+            SMALL_TOWN_IDS
+              .woodcutterCamp
+        },
+        "storage"
+      );
+  const kiln =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.woodcutterCamp,
+      "charcoal-kiln"
+    );
+
+  assert.ok(endpoint);
+  assert.ok(storage);
+  assert.ok(kiln);
+
+  storage.add("pinewood", 5);
+
+  simulation.world.addEntity({
+    id: "charcoal-burner",
+    kind: "person",
+    domainId: endpoint.domainId,
+    position: endpoint.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const job =
+    simulation.production.start({
+      workerEntityId:
+        "charcoal-burner",
+      placeId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      recipeId: "burn-pine-charcoal"
+    });
+
+  assert.equal(
+    storage.quantityOf("pinewood"),
+    0
+  );
+
+  const deltaSeconds = 0.25;
+  const maxTicks = 4_000;
+  let ticks = 0;
+
+  while (
+    job.phase !== "complete" &&
+    job.phase !== "failed" &&
+    ticks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < maxTicks,
+    "charcoal production should finish"
+  );
+  assert.equal(
+    job.phase,
+    "complete",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    2
+  );
+
+  storage.add("oakwood", 5);
+
+  const oakJob =
+    simulation.production.start({
+      workerEntityId:
+        "charcoal-burner",
+      placeId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      recipeId: "burn-oak-charcoal"
+    });
+
+  let oakTicks = 0;
+
+  while (
+    oakJob.phase !== "complete" &&
+    oakJob.phase !== "failed" &&
+    oakTicks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    oakTicks += 1;
+  }
+
+  assert.ok(
+    oakTicks < maxTicks,
+    "oak charcoal production should finish"
+  );
+  assert.equal(
+    oakJob.phase,
+    "complete",
+    oakJob.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("oakwood"),
+    0
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    4
+  );
+
+  const worker =
+    simulation.world.getEntity(
+      "charcoal-burner"
+    );
+
+  assert.ok(worker);
+  assert.equal(
+    worker.domainId,
+    "default"
+  );
+  assert.equal(
+    worker.domainId,
+    kiln.domainId
+  );
+  assert.deepEqual(
+    worker.position,
+    kiln.position
+  );
+
+  assert.equal(
+    simulation.places
+      .locateEntity(worker)
+      .semanticPlaces
+      .includes(
+        SMALL_TOWN_IDS
+          .woodcutterCamp
+      ),
+    true
+  );
+});

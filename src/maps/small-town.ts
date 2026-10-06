@@ -143,6 +143,11 @@ export const SMALL_TOWN_MAP:
             y: 166
           },
           {
+            id: "woodcutter-charcoal-kiln",
+            x: 147,
+            y: 166
+          },
+          {
             id: "pinewood-01",
             x: 150,
             y: 192
@@ -302,6 +307,13 @@ export const SMALL_TOWN_MAP:
             surface: "road"
           },
           {
+            id: "woodcutter-loading-to-charcoal-kiln",
+            from: "woodcutter-loading",
+            to: "woodcutter-charcoal-kiln",
+            width: 2,
+            surface: "path"
+          },
+          {
             id: "wood-to-pinewood",
             from: "wood-crossroad",
             to: "pinewood-01",
@@ -438,7 +450,9 @@ export const SMALL_TOWN_MAP:
       },
       embeddedNodeBindings: {
         anchors: {
-          loading: "woodcutter-loading"
+          loading: "woodcutter-loading",
+          "charcoal-kiln":
+            "woodcutter-charcoal-kiln"
         }
       },
       placement: {

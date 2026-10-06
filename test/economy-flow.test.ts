@@ -6,6 +6,10 @@ import {
 } from "world-core";
 
 import {
+  createOwnerInventory
+} from "../src/inventory/owners.js";
+
+import {
   SMALL_TOWN_IDS,
   SMALL_TOWN_RESOURCE_IDS,
   createSmallTownScenario
@@ -63,6 +67,10 @@ test("iron resource becomes processed iron through gathering, hauling, and inter
     simulation.transfers.get(
       SMALL_TOWN_IDS.foundry
     );
+  const woodcutterEndpoint =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.woodcutterCamp
+    );
   const mineStorage =
     simulation.inventoryBindings
       .getInventory(
@@ -81,6 +89,22 @@ test("iron resource becomes processed iron through gathering, hauling, and inter
         },
         "storage"
       );
+  const woodcutterStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id:
+            SMALL_TOWN_IDS
+              .woodcutterCamp
+        },
+        "storage"
+      );
+  const charcoalKiln =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.woodcutterCamp,
+      "charcoal-kiln"
+    );
   const forge =
     simulation.places.resolveAnchor(
       SMALL_TOWN_IDS.foundry,
@@ -89,8 +113,11 @@ test("iron resource becomes processed iron through gathering, hauling, and inter
 
   assert.ok(mineEndpoint);
   assert.ok(foundryEndpoint);
+  assert.ok(woodcutterEndpoint);
   assert.ok(mineStorage);
   assert.ok(foundryStorage);
+  assert.ok(woodcutterStorage);
+  assert.ok(charcoalKiln);
   assert.ok(forge);
 
   const gathering =
@@ -196,8 +223,203 @@ test("iron resource becomes processed iron through gathering, hauling, and inter
     5
   );
 
-  foundryStorage.add(
-    "charcoal",
+  simulation.world.addEntity({
+    id: "woodcutter",
+    kind: "person",
+    domainId:
+      woodcutterEndpoint.domainId,
+    position:
+      woodcutterEndpoint.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  createOwnerInventory(
+    simulation,
+    {
+      kind: "entity",
+      id: "woodcutter"
+    },
+    "carried",
+    {
+      slotCount: 1,
+      slotCapacity: 10
+    }
+  );
+
+  const woodGathering =
+    simulation.gathering.start({
+      workerEntityId: "woodcutter",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS
+          .pinewood,
+      depositPlaceId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp
+    });
+
+  runUntil(
+    simulation,
+    () =>
+      woodGathering.phase ===
+        "complete" ||
+      woodGathering.phase ===
+        "failed",
+    "wood gathering"
+  );
+
+  assert.equal(
+    woodGathering.phase,
+    "complete",
+    woodGathering.failureReason ??
+      undefined
+  );
+  assert.equal(
+    woodcutterStorage.quantityOf(
+      "pinewood"
+    ),
+    5
+  );
+
+  simulation.world.addEntity({
+    id: "charcoal-burner",
+    kind: "person",
+    domainId:
+      woodcutterEndpoint.domainId,
+    position:
+      woodcutterEndpoint.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const charcoalProduction =
+    simulation.production.start({
+      workerEntityId:
+        "charcoal-burner",
+      placeId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      recipeId: "burn-pine-charcoal"
+    });
+
+  runUntil(
+    simulation,
+    () =>
+      charcoalProduction.phase ===
+        "complete" ||
+      charcoalProduction.phase ===
+        "failed",
+    "charcoal production"
+  );
+
+  assert.equal(
+    charcoalProduction.phase,
+    "complete",
+    charcoalProduction
+      .failureReason ??
+      undefined
+  );
+  assert.equal(
+    woodcutterStorage.quantityOf(
+      "pinewood"
+    ),
+    0
+  );
+  assert.equal(
+    woodcutterStorage.quantityOf(
+      "charcoal"
+    ),
+    2
+  );
+
+  const charcoalBurner =
+    simulation.world.getEntity(
+      "charcoal-burner"
+    );
+  assert.ok(charcoalBurner);
+  assert.equal(
+    charcoalBurner.domainId,
+    charcoalKiln.domainId
+  );
+  assert.deepEqual(
+    charcoalBurner.position,
+    charcoalKiln.position
+  );
+
+  simulation.world.addEntity({
+    id: "charcoal-carter",
+    kind: "person",
+    domainId:
+      woodcutterEndpoint.domainId,
+    position:
+      woodcutterEndpoint.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const charcoalCart =
+    simulation.transports.create({
+      id: "charcoal-cart",
+      definitionId: "handcart",
+      domainId:
+        woodcutterEndpoint.domainId,
+      position:
+        woodcutterEndpoint.position,
+      operatorEntityId:
+        "charcoal-carter"
+    });
+
+  const charcoalHauling =
+    simulation.hauling.start({
+      transportId:
+        charcoalCart.id,
+      sourcePlaceId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      sourceChannel: "storage",
+      targetPlaceId:
+        SMALL_TOWN_IDS.foundry,
+      targetChannel: "storage",
+      manifest: [
+        {
+          itemId: "charcoal",
+          amount: 2
+        }
+      ]
+    });
+
+  runUntil(
+    simulation,
+    () =>
+      charcoalHauling.phase ===
+        "complete" ||
+      charcoalHauling.phase ===
+        "failed",
+    "charcoal hauling"
+  );
+
+  assert.equal(
+    charcoalHauling.phase,
+    "complete",
+    charcoalHauling.failureReason ??
+      undefined
+  );
+  assert.equal(
+    woodcutterStorage.quantityOf(
+      "charcoal"
+    ),
+    0
+  );
+  assert.equal(
+    foundryStorage.quantityOf(
+      "charcoal"
+    ),
     2
   );
 
