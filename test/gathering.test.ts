@@ -435,6 +435,101 @@ test("gathering can start with a full deposit if capacity is available by return
   );
 });
 
+test("gathering rejects an assignable node that changes resource type in transit", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+  const ironNode =
+    simulation.resources.getNode(
+      SMALL_TOWN_RESOURCE_IDS.iron
+    );
+
+  assert.ok(storage);
+  assert.ok(carried);
+  assert.ok(ironNode);
+
+  simulation.resources.createNode({
+    id: "assignable-transit-node",
+    definitionId: "field",
+    resourceTypeId: "iron",
+    location: {
+      domainId:
+        ironNode.location.domainId,
+      position:
+        ironNode.location.position,
+      navigationNodeId:
+        ironNode.location
+          .navigationNodeId
+    }
+  });
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        "assignable-transit-node",
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  simulation.resources
+    .setNodeResourceType(
+      "assignable-transit-node",
+      "silver"
+    );
+
+  let ticks = 0;
+  while (
+    job.phase !== "complete" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < 4_000,
+    "gathering should reject the reassigned node on arrival"
+  );
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.failureReason,
+    "worker did not reach resource"
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    0
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    0
+  );
+});
+
 test("gathering stops if an assignable node changes resource type during work", () => {
   const simulation =
     createSmallTownScenario();
