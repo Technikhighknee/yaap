@@ -518,7 +518,7 @@ test("gathering rejects an assignable node that changes resource type in transit
   );
   assert.equal(
     job.failureReason,
-    "worker did not reach resource"
+    "resource changed before arrival"
   );
   assert.equal(
     carried.quantityOf("iron-ore"),
@@ -620,7 +620,7 @@ test("gathering stops if an assignable node changes resource type during work", 
   );
   assert.equal(
     job.failureReason,
-    "worker left resource"
+    "resource changed during gathering"
   );
   assert.equal(
     carried.quantityOf("iron-ore"),
