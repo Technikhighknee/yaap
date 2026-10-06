@@ -590,3 +590,128 @@ test("woodcutter can burn gathered wood into charcoal at the camp kiln", () => {
     2
   );
 });
+
+
+test("charcoal burner works at the exterior kiln without leaving the host domain", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  simulation.world
+    .configureLocalSteering({
+      enabled: true
+    });
+
+  const endpoint =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.woodcutterCamp
+    );
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id:
+            SMALL_TOWN_IDS
+              .woodcutterCamp
+        },
+        "storage"
+      );
+  const kiln =
+    simulation.places.resolveAnchor(
+      SMALL_TOWN_IDS.woodcutterCamp,
+      "charcoal-kiln"
+    );
+
+  assert.ok(endpoint);
+  assert.ok(storage);
+  assert.ok(kiln);
+
+  storage.add("pinewood", 5);
+
+  simulation.world.addEntity({
+    id: "charcoal-burner",
+    kind: "person",
+    domainId: endpoint.domainId,
+    position: endpoint.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const job =
+    simulation.production.start({
+      workerEntityId:
+        "charcoal-burner",
+      placeId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      recipeId: "burn-charcoal"
+    });
+
+  assert.equal(
+    storage.quantityOf("pinewood"),
+    0
+  );
+
+  const deltaSeconds = 0.25;
+  const maxTicks = 4_000;
+  let ticks = 0;
+
+  while (
+    job.phase !== "complete" &&
+    job.phase !== "failed" &&
+    ticks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < maxTicks,
+    "charcoal production should finish"
+  );
+  assert.equal(
+    job.phase,
+    "complete",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    storage.quantityOf("charcoal"),
+    2
+  );
+
+  const worker =
+    simulation.world.getEntity(
+      "charcoal-burner"
+    );
+
+  assert.ok(worker);
+  assert.equal(
+    worker.domainId,
+    "default"
+  );
+  assert.equal(
+    worker.domainId,
+    kiln.domainId
+  );
+  assert.deepEqual(
+    worker.position,
+    kiln.position
+  );
+
+  assert.equal(
+    simulation.places
+      .locateEntity(worker)
+      .semanticPlaces
+      .includes(
+        SMALL_TOWN_IDS
+          .woodcutterCamp
+      ),
+    true
+  );
+});
