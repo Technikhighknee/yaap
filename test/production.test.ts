@@ -171,7 +171,7 @@ test("foundry worker travels inside, works at the forge, and smelts reserved ore
   );
 });
 
-test("multiple workers can produce concurrently in the same foundry", () => {
+test("one physical forge serializes production workers", () => {
   const simulation =
     createSmallTownScenario();
 
@@ -224,7 +224,7 @@ test("multiple workers can produce concurrently in the same foundry", () => {
       "iron-ore"
     ),
     0,
-    "both jobs must reserve distinct inputs"
+    "both committed jobs reserve their inputs"
   );
   assert.equal(
     storage.quantityOf(
@@ -232,11 +232,22 @@ test("multiple workers can produce concurrently in the same foundry", () => {
     ),
     0
   );
+  assert.equal(
+    jobs[1]?.phase,
+    "waiting-for-workstation"
+  );
+  assert.equal(
+    jobs[1]?.workstationAnchorId,
+    null
+  );
 
   const deltaSeconds = 0.25;
   const maxTicks = 4_000;
   let ticks = 0;
   let maxSimultaneousWorking = 0;
+  let sawSecondWaiting = false;
+  let sawSecondWorkAfterFirst =
+    false;
 
   while (
     jobs.some(
@@ -250,6 +261,21 @@ test("multiple workers can produce concurrently in the same foundry", () => {
       simulation,
       deltaSeconds
     );
+
+    if (
+      jobs[1]?.phase ===
+      "waiting-for-workstation"
+    ) {
+      sawSecondWaiting = true;
+    }
+
+    if (
+      jobs[0]?.phase === "complete" &&
+      jobs[1]?.phase === "working"
+    ) {
+      sawSecondWorkAfterFirst =
+        true;
+    }
 
     maxSimultaneousWorking =
       Math.max(
@@ -265,7 +291,7 @@ test("multiple workers can produce concurrently in the same foundry", () => {
 
   assert.ok(
     ticks < maxTicks,
-    "parallel production jobs should finish"
+    "serialized production jobs should finish"
   );
 
   for (const job of jobs) {
@@ -275,15 +301,169 @@ test("multiple workers can produce concurrently in the same foundry", () => {
       job.failureReason ??
         undefined
     );
+    assert.equal(
+      job.workstationAnchorId,
+      "forge"
+    );
   }
 
-  assert.ok(
-    maxSimultaneousWorking > 1,
-    "the foundry must not impose a global production lock"
+  assert.equal(
+    sawSecondWaiting,
+    true
+  );
+  assert.equal(
+    maxSimultaneousWorking,
+    1,
+    "one forge must never host two active workers"
+  );
+  assert.equal(
+    sawSecondWorkAfterFirst,
+    true,
+    "the waiting worker should acquire the forge after it is released"
   );
   assert.equal(
     storage.quantityOf("iron"),
     10
+  );
+});
+
+test("different physical workstations can run concurrently", () => {
+  const simulation =
+    createSmallTownScenario();
+
+  simulation.world
+    .configureLocalSteering({
+      enabled: true
+    });
+
+  const foundryStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.foundry
+        },
+        "storage"
+      );
+  const woodStorage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id:
+            SMALL_TOWN_IDS
+              .woodcutterCamp
+        },
+        "storage"
+      );
+  const woodEndpoint =
+    simulation.transfers.get(
+      SMALL_TOWN_IDS.woodcutterCamp
+    );
+
+  assert.ok(foundryStorage);
+  assert.ok(woodStorage);
+  assert.ok(woodEndpoint);
+
+  foundryStorage.add(
+    "iron-ore",
+    5
+  );
+  foundryStorage.add(
+    "charcoal",
+    2
+  );
+  woodStorage.add(
+    "pinewood",
+    5
+  );
+
+  addFoundryWorker(
+    simulation,
+    "parallel-smith"
+  );
+
+  simulation.world.addEntity({
+    id: "parallel-burner",
+    kind: "person",
+    domainId:
+      woodEndpoint.domainId,
+    position:
+      woodEndpoint.position,
+    mobility:
+      mobilityProfile(
+        "pedestrian"
+      )
+  });
+
+  const smith =
+    simulation.production.start({
+      workerEntityId:
+        "parallel-smith",
+      placeId:
+        SMALL_TOWN_IDS.foundry,
+      recipeId: "smelt-iron"
+    });
+  const burner =
+    simulation.production.start({
+      workerEntityId:
+        "parallel-burner",
+      placeId:
+        SMALL_TOWN_IDS
+          .woodcutterCamp,
+      recipeId:
+        "burn-pine-charcoal"
+    });
+
+  const deltaSeconds = 0.25;
+  const maxTicks = 4_000;
+  let ticks = 0;
+  let sawConcurrentWork = false;
+
+  while (
+    (
+      smith.phase !== "complete" ||
+      burner.phase !== "complete"
+    ) &&
+    smith.phase !== "failed" &&
+    burner.phase !== "failed" &&
+    ticks < maxTicks
+  ) {
+    stepSimulation(
+      simulation,
+      deltaSeconds
+    );
+
+    if (
+      smith.phase === "working" &&
+      burner.phase === "working"
+    ) {
+      sawConcurrentWork = true;
+    }
+
+    ticks += 1;
+  }
+
+  assert.ok(
+    ticks < maxTicks,
+    "independent workstation jobs should finish"
+  );
+  assert.equal(
+    smith.phase,
+    "complete",
+    smith.failureReason ??
+      undefined
+  );
+  assert.equal(
+    burner.phase,
+    "complete",
+    burner.failureReason ??
+      undefined
+  );
+  assert.equal(
+    sawConcurrentWork,
+    true,
+    "workstation claims must not become a global production lock"
   );
 });
 
