@@ -429,6 +429,114 @@ test("gathering stops if the worker leaves the resource while working", () => {
   );
 });
 
+test("gathered output stays with the worker when the return route becomes unavailable", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+
+  assert.ok(storage);
+  assert.ok(carried);
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  let ticks = 0;
+  while (
+    job.phase !== "working" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.equal(
+    job.phase,
+    "working",
+    job.failureReason ??
+      undefined
+  );
+
+  const navigation =
+    simulation.navigation
+      .navigationForDomain(
+        "default"
+      );
+  assert.ok(navigation);
+
+  for (
+    const roadId
+    of navigation.roads.keys()
+  ) {
+    simulation.navigation
+      .setDomainRoadEffect(
+        "default",
+        "gathering-return-block",
+        roadId,
+        { blocked: true }
+      );
+  }
+
+  let workTicks = 0;
+  while (
+    job.phase === "working" &&
+    workTicks < 4_000
+  ) {
+    simulation.gathering.step(
+      0.25
+    );
+    workTicks += 1;
+  }
+
+  assert.ok(
+    workTicks < 4_000,
+    "gathering work should reach a terminal state"
+  );
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.failureReason,
+    "cannot route worker back to deposit"
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    5,
+    "successfully gathered output must not disappear when return routing fails"
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    0
+  );
+});
+
 test("gathering never partially deposits output when storage fills during the trip back", () => {
   const simulation =
     createSmallTownScenario();
