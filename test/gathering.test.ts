@@ -833,6 +833,101 @@ test("gathered output stays with the worker when the return route becomes unavai
   );
 });
 
+test("gathering never partially deposits output that changes during return", () => {
+  const simulation =
+    createSmallTownScenario();
+  const storage =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "place",
+          id: SMALL_TOWN_IDS.mine
+        },
+        "storage"
+      );
+  const carried =
+    simulation.inventoryBindings
+      .getInventory(
+        {
+          kind: "entity",
+          id: "miner-01"
+        },
+        "carried"
+      );
+
+  assert.ok(storage);
+  assert.ok(carried);
+
+  const job =
+    simulation.gathering.start({
+      workerEntityId: "miner-01",
+      resourceNodeId:
+        SMALL_TOWN_RESOURCE_IDS.iron,
+      depositPlaceId:
+        SMALL_TOWN_IDS.mine
+    });
+
+  let ticks = 0;
+  while (
+    job.phase !== "returning" &&
+    job.phase !== "failed" &&
+    ticks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    ticks += 1;
+  }
+
+  assert.equal(
+    job.phase,
+    "returning",
+    job.failureReason ??
+      undefined
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    5
+  );
+
+  carried.remove("iron-ore", 1);
+
+  let returnTicks = 0;
+  while (
+    job.phase === "returning" &&
+    returnTicks < 4_000
+  ) {
+    stepSimulation(
+      simulation,
+      0.25
+    );
+    returnTicks += 1;
+  }
+
+  assert.ok(
+    returnTicks < 4_000,
+    "gathering return should reach a terminal state"
+  );
+  assert.equal(
+    job.phase,
+    "failed"
+  );
+  assert.equal(
+    job.failureReason,
+    "gathered output changed during return"
+  );
+  assert.equal(
+    storage.quantityOf("iron-ore"),
+    0,
+    "an incomplete gathered output must not be partially deposited"
+  );
+  assert.equal(
+    carried.quantityOf("iron-ore"),
+    4
+  );
+});
+
 test("gathering never partially deposits output when storage fills during the trip back", () => {
   const simulation =
     createSmallTownScenario();
