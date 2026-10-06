@@ -736,11 +736,22 @@ export class ProductionSystem {
           continue;
         }
 
-        if (
-          !this.tryAcquireWorkstation(
-            job
-          )
-        ) {
+        let acquiredWorkstation: boolean;
+
+        try {
+          acquiredWorkstation =
+            this.tryAcquireWorkstation(
+              job
+            );
+        } catch {
+          this.failAndRefund(
+            job,
+            "failed to acquire production workstation"
+          );
+          continue;
+        }
+
+        if (!acquiredWorkstation) {
           continue;
         }
       }
